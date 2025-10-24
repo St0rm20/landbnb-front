@@ -1,0 +1,62 @@
+<div class="login-page">
+    <div class="body-overlay"></div>
+
+    <div class="container d-flex flex-grow-1 align-items-center justify-content-center">
+        <div class="card login-card shadow-lg">
+            <div class="card-body p-5">
+                <div class="text-center mb-5">
+                    <a routerLink="/">
+                        <img src="assets/imagenes/Logo.png" alt="Logo Landbnb" class="logo-img">
+                    </a>
+                    <h3 class="mt-4 text-center">Iniciar Sesión</h3>
+                </div>
+
+                <form [formGroup]="loginForm" (ngSubmit)="loginUser()" novalidate>
+                    <div class="mb-4">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email"
+                               formControlName="email" placeholder="nombre@ejemplo.com"
+                               [class.is-invalid]="submitted && f['email'].invalid">
+
+                        <ng-container *ngIf="submitted">
+                            <div *ngIf="f['email'].errors?.['required']" class="invalid-feedback">
+                                El email es requerido
+                            </div>
+                            <div *ngIf="f['email'].errors?.['email']" class="invalid-feedback">
+                                Formato de email inválido
+                            </div>
+                        </ng-container>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" id="password"
+                               formControlName="password" placeholder="••••••••"
+                               [class.is-invalid]="submitted && f['password'].invalid">
+
+                        <ng-container *ngIf="submitted">
+                            <div *ngIf="f['password'].errors?.['required']" class="invalid-feedback">
+                                La contraseña es requerida
+                            </div>
+                            <div *ngIf="f['password'].errors?.['minlength']" class="invalid-feedback">
+                                Mínimo 6 caracteres
+                            </div>
+                        </ng-container>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">Entrar</button>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <a routerLink="/forgot-password" class="underlined-link">¿Olvidaste tu contraseña?</a>
+                    </div>
+
+                    <div class="mt-4 text-center">
+                        <small>¿No tienes una cuenta? <a routerLink="/register" class="underlined-link">Regístrate</a></small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

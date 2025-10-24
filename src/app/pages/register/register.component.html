@@ -1,0 +1,122 @@
+<div class="register-page">
+    <div class="body-overlay"></div>
+
+    <div class="container">
+        <div class="card register-card">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <a routerLink="/">
+                        <img src="assets/imagenes/Logo.png" alt="Logo Landbnb" class="logo-img">
+                    </a>
+                    <h3 class="mt-3">Crea tu cuenta para empezar a explorar</h3>
+                </div>
+
+                <form [formGroup]="registerForm" (ngSubmit)="createUser()" novalidate>
+
+                    <!-- Primera fila - 2 columnas -->
+                    <div class="form-grid">
+                        <div class="form-column">
+                            <label class="form-label">Nombre completo</label>
+                            <input type="text" class="form-control" formControlName="name"
+                                   [class.is-invalid]="submitted && f['name'].invalid">
+
+                            <ng-container *ngIf="submitted">
+                                <div *ngIf="f['name'].errors?.['required']" class="invalid-feedback">
+                                    El nombre es requerido
+                                </div>
+                                <div *ngIf="f['name'].errors?.['minlength']" class="invalid-feedback">
+                                    El nombre debe tener al menos 2 caracteres
+                                </div>
+                            </ng-container>
+                        </div>
+
+                        <div class="form-column">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" formControlName="email"
+                                   placeholder="nombre@ejemplo.com"
+                                   [class.is-invalid]="submitted && f['email'].invalid">
+
+                            <ng-container *ngIf="submitted">
+                                <div *ngIf="f['email'].errors?.['required']" class="invalid-feedback">
+                                    El email es requerido
+                                </div>
+                                <div *ngIf="f['email'].errors?.['email']" class="invalid-feedback">
+                                    Formato de email inválido
+                                </div>
+                            </ng-container>
+                        </div>
+                    </div>
+
+                    <!-- Segunda fila - 2 columnas -->
+                    <div class="form-grid">
+                        <div class="form-column">
+                            <label class="form-label">Teléfono</label>
+                            <input type="tel" class="form-control" formControlName="phone"
+                                   [class.is-invalid]="submitted && f['phone'].invalid">
+
+                            <ng-container *ngIf="submitted">
+                                <div *ngIf="f['phone'].errors?.['required']" class="invalid-feedback">
+                                    El teléfono es requerido
+                                </div>
+                                <div *ngIf="f['phone'].errors?.['pattern']" class="invalid-feedback">
+                                    Formato de teléfono inválido
+                                </div>
+                            </ng-container>
+                        </div>
+
+                        <div class="form-column">
+                            <label class="form-label">Fecha de nacimiento</label>
+                            <input type="date" class="form-control date-input" formControlName="dateBirth"
+                                   [class.is-invalid]="submitted && f['dateBirth'].invalid">
+
+                            <ng-container *ngIf="submitted">
+                                <div *ngIf="f['dateBirth'].errors?.['required']" class="invalid-feedback">
+                                    La fecha de nacimiento es requerida
+                                </div>
+                                <div *ngIf="f['dateBirth'].errors?.['underage']" class="invalid-feedback">
+                                    Debes ser mayor de 18 años
+                                </div>
+                            </ng-container>
+                        </div>
+                    </div>
+
+                    <!-- Tercera fila - 1 columna -->
+                    <div class="form-grid">
+                        <div class="form-full">
+                            <label class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" formControlName="password"
+                                   [class.is-invalid]="submitted && f['password'].invalid">
+
+                            <ng-container *ngIf="submitted">
+                                <div *ngIf="f['password'].errors?.['required']" class="invalid-feedback">
+                                    La contraseña es requerida
+                                </div>
+                                <div *ngIf="f['password'].errors?.['minlength']" class="invalid-feedback">
+                                    Mínimo 8 caracteres
+                                </div>
+                                <div *ngIf="f['password'].errors?.['pattern']" class="invalid-feedback">
+                                    Debe contener al menos una mayúscula y un número
+                                </div>
+                            </ng-container>
+
+                            <div class="form-text">Mínimo 8 caracteres, con mayúsculas y números.</div>
+                        </div>
+                    </div>
+
+                    <!-- Botón -->
+                    <div class="form-grid mt-4">
+                        <div class="form-full">
+                            <button type="submit" class="btn-primary">
+                                Crear Cuenta
+                            </button>
+                            <p class="text-center mt-3 mb-0">
+                                ¿Ya tienes una cuenta?
+                                <a routerLink="/login">Inicia sesión</a>
+                            </p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
