@@ -11,6 +11,7 @@ interface Property {
     rating: number;
     image: string;
     features: string[];
+    available?: boolean; // Agregar propiedad para disponibilidad
 }
 
 interface Filter {
@@ -30,8 +31,16 @@ interface Filter {
 export class HomeComponent implements OnInit, AfterViewInit {
     dropdownOpen = false;
     searchDestination: string = '';
+
+    // Datepicker properties
     checkinDate: string = '';
     checkoutDate: string = '';
+    minDate: string = '';
+    minCheckoutDate: string = '';
+
+    // Mensajes de error para fechas
+    dateError: string = '';
+
     minPrice: number = 50000;
     maxPrice: number = 500000;
     minRange: number = 0;
@@ -63,7 +72,8 @@ export class HomeComponent implements OnInit, AfterViewInit {
             price: 150000,
             rating: 4.85,
             image: 'assets/imagenes/Hostal1.jpg.webp',
-            features: ['wifi', 'pool', 'parking']
+            features: ['wifi', 'pool', 'parking'],
+            available: true
         },
         {
             id: 2,
@@ -72,7 +82,8 @@ export class HomeComponent implements OnInit, AfterViewInit {
             price: 220000,
             rating: 4.92,
             image: 'assets/imagenes/hostal2.jpg.avif',
-            features: ['wifi', 'ac', 'kitchen']
+            features: ['wifi', 'ac', 'kitchen'],
+            available: true
         },
         {
             id: 3,
@@ -81,7 +92,8 @@ export class HomeComponent implements OnInit, AfterViewInit {
             price: 180000,
             rating: 5.0,
             image: 'assets/imagenes/hostal3.jpg',
-            features: ['wifi', 'pool', 'ac', 'parking']
+            features: ['wifi', 'pool', 'ac', 'parking'],
+            available: true
         },
         {
             id: 4,
@@ -90,19 +102,103 @@ export class HomeComponent implements OnInit, AfterViewInit {
             price: 165000,
             rating: 4.78,
             image: 'assets/imagenes/hostal4.jpg',
-            features: ['wifi', 'kitchen', 'parking']
+            features: ['wifi', 'kitchen', 'parking'],
+            available: true
+        },
+        {
+            id: 5,
+            title: 'Casa con todas las comodidades',
+            description: 'Casa completa en la naturaleza',
+            price: 300000,
+            rating: 4.95,
+            image: 'assets/imagenes/Hostal1.jpg.webp',
+            features: ['wifi', 'pool', 'ac', 'kitchen', 'parking', 'pets'],
+            available: true
         }
     ];
 
     filteredProperties: Property[] = [];
 
     ngOnInit(): void {
+        this.initializeDates();
         this.filteredProperties = [...this.properties];
         this.calculateTotalPages();
     }
 
     ngAfterViewInit(): void {
         // No necesitamos inicializar nada externo
+    }
+
+    // Datepicker Methods
+    initializeDates(): void {
+        const today = new Date();
+        this.minDate = this.formatDate(today);
+
+        // Set default check-in to today
+        this.checkinDate = this.minDate;
+
+        // Set default check-out to tomorrow
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        this.checkoutDate = this.formatDate(tomorrow);
+
+        this.updateMinCheckoutDate();
+        this.dateError = '';
+    }
+
+    formatDate(date: Date): string {
+        const year = date.getFullYear();
+        const month = ('0' + (date.getMonth() + 1)).slice(-2);
+        const day = ('0' + date.getDate()).slice(-2);
+        return `${year}-${month}-${day}`;
+    }
+
+    onDateChange(): void {
+        this.validateDates();
+        if (!this.dateError) {
+            this.applyFilters();
+        }
+    }
+
+    validateDates(): void {
+        this.dateError = '';
+
+        if (this.checkinDate && this.checkoutDate) {
+            const checkin = new Date(this.checkinDate);
+            const checkout = new Date(this.checkoutDate);
+
+            // Validar que check-out no sea antes de check-in
+            if (checkout < checkin) {
+                this.dateError = 'La fecha de salida no puede ser anterior a la fecha de entrada';
+                return;
+            }
+
+            // Validar que no sea la misma fecha
+            if (checkin.getTime() === checkout.getTime()) {
+                this.dateError = 'La estadía debe ser de al menos una noche';
+                return;
+            }
+
+            // Actualizar fecha mínima de check-out
+            this.updateMinCheckoutDate();
+        }
+    }
+
+    updateMinCheckoutDate(): void {
+        if (this.checkinDate) {
+            const checkin = new Date(this.checkinDate);
+            const minCheckout = new Date(checkin);
+            minCheckout.setDate(minCheckout.getDate() + 1);
+            this.minCheckoutDate = this.formatDate(minCheckout);
+
+            // Ajustar checkout date si es inválida
+            if (this.checkoutDate) {
+                const checkout = new Date(this.checkoutDate);
+                if (checkout <= checkin) {
+                    this.checkoutDate = this.minCheckoutDate;
+                }
+            }
+        }
     }
 
     // Slider Methods
@@ -137,7 +233,7 @@ export class HomeComponent implements OnInit, AfterViewInit {
             this.activeHandle = null;
             document.removeEventListener('mousemove', moveHandler);
             document.removeEventListener('mouseup', upHandler);
-            this.applyFilters(); // Aplicar filtros al soltar
+            this.applyFilters();
         };
 
         document.addEventListener('mousemove', moveHandler);
@@ -151,7 +247,6 @@ export class HomeComponent implements OnInit, AfterViewInit {
         const percentage = Math.max(0, Math.min(1, x / rect.width));
         const value = Math.round(percentage * (this.maxRange - this.minRange) + this.minRange);
 
-        // Determinar qué handle mover basado en la posición
         const minDistance = Math.abs(value - this.minPrice);
         const maxDistance = Math.abs(value - this.maxPrice);
 
@@ -203,12 +298,25 @@ export class HomeComponent implements OnInit, AfterViewInit {
     }
 
     applyFilters(): void {
+        // Validar fechas primero
+        this.validateDates();
+        if (this.dateError) {
+            // Si hay error en fechas, no aplicar filtros o mostrar propiedades limitadas
+            this.filteredProperties = [];
+            this.calculateTotalPages();
+            return;
+        }
+
         let filtered = [...this.properties];
 
-        // Filtrar por destino
+        // Filtrar por destino (OR dentro del mismo campo)
         if (this.searchDestination) {
+            const searchTerms = this.searchDestination.toLowerCase().split(' ');
             filtered = filtered.filter(p =>
-                p.title.toLowerCase().includes(this.searchDestination.toLowerCase())
+                searchTerms.some(term =>
+                    p.title.toLowerCase().includes(term) ||
+                    p.description.toLowerCase().includes(term)
+                )
             );
         }
 
@@ -217,15 +325,23 @@ export class HomeComponent implements OnInit, AfterViewInit {
             p.price >= this.minPrice && p.price <= this.maxPrice
         );
 
-        // Filtrar por características activas
+        // Filtrar por características activas (AND entre diferentes características)
         const activeFilters = this.filters
             .filter(f => f.active && f.type !== 'popular')
             .map(f => f.type);
 
         if (activeFilters.length > 0) {
+            // CAMBIO CLAVE: Usar AND en lugar de OR
+            // Solo mostrar propiedades que tengan TODAS las características activas
             filtered = filtered.filter(p =>
-                activeFilters.some(af => p.features.includes(af))
+                activeFilters.every(af => p.features.includes(af))
             );
+        }
+
+        // Filtrar por "Populares" (rating alto)
+        const popularFilter = this.filters.find(f => f.type === 'popular');
+        if (popularFilter?.active) {
+            filtered = filtered.filter(p => p.rating >= 4.8);
         }
 
         this.filteredProperties = filtered;
@@ -254,5 +370,10 @@ export class HomeComponent implements OnInit, AfterViewInit {
             pages.push(i);
         }
         return pages;
+    }
+
+    // Método para limpiar errores de fecha
+    clearDateError(): void {
+        this.dateError = '';
     }
 }

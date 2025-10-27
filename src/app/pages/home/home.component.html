@@ -59,14 +59,22 @@
                        [(ngModel)]="searchDestination" (input)="onDestinationChange()">
             </div>
             <div class="search-divider"></div>
-            <div class="search-field">
+            <div class="search-field date-field">
                 <small><i class="fas fa-calendar-alt"></i> Check-in</small>
-                <input type="text" placeholder="Agrega fechas" [(ngModel)]="checkinDate">
+                <input type="date"
+                       [(ngModel)]="checkinDate"
+                       (change)="onDateChange()"
+                       [min]="minDate"
+                       class="date-input">
             </div>
             <div class="search-divider"></div>
-            <div class="search-field">
+            <div class="search-field date-field">
                 <small><i class="fas fa-calendar-alt"></i> Check-out</small>
-                <input type="text" placeholder="Agrega fechas" [(ngModel)]="checkoutDate">
+                <input type="date"
+                       [(ngModel)]="checkoutDate"
+                       (change)="onDateChange()"
+                       [min]="minCheckoutDate"
+                       class="date-input">
             </div>
             <div class="search-divider"></div>
             <div class="search-field">
@@ -90,6 +98,12 @@
             <button class="search-btn" (click)="searchProperties()">
                 <i class="fas fa-search"></i>
             </button>
+        </div>
+
+        <!-- Mensaje de error para fechas -->
+        <div *ngIf="dateError" class="date-error-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{dateError}}
         </div>
     </div>
 </div>

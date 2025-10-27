@@ -722,4 +722,112 @@ body {
     .filter-item span {
         font-size: 0.75rem;
     }
+
+
+    /* Datepicker Styles */
+    .date-field {
+        position: relative;
+    }
+
+    .date-input {
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        width: 100%;
+        font-size: 0.9rem;
+        font-family: inherit;
+        cursor: pointer;
+    }
+
+    .date-input:focus {
+        outline: none;
+    }
+
+    .date-input::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        opacity: 0.7;
+        cursor: pointer;
+        margin-left: 4px;
+    }
+
+    .date-input::-webkit-datetime-edit {
+        color: var(--text-secondary);
+    }
+
+    .date-input::-webkit-datetime-edit-fields-wrapper {
+        color: var(--text-secondary);
+    }
+
+    .date-input::-webkit-datetime-edit-text {
+        color: var(--text-secondary);
+        opacity: 0.7;
+    }
+
+    /* Placeholder styling for date inputs */
+    .date-input:not(:valid)::-webkit-datetime-edit {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Responsive adjustments for datepicker */
+    @media (max-width: 768px) {
+        .date-input {
+            font-size: 0.8rem;
+        }
+
+        .date-input::-webkit-calendar-picker-indicator {
+            margin-left: 2px;
+        }
+    }
+
+    /* Improve search bar layout for date fields */
+    .search-field.date-field {
+        min-width: 140px;
+    }
+
+    /* Ensure consistent spacing in search bar */
+    .search-bar {
+        gap: 0;
+        align-items: stretch;
+    }
+
+    .search-field {
+        padding: 0.5rem 1rem;
+    }
+
+    /* Date Error Message Styles */
+    .date-error-message {
+        background: rgba(255, 87, 87, 0.1);
+        border: 1px solid rgba(255, 87, 87, 0.3);
+        color: #ff5757;
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .date-error-message i {
+        font-size: 1rem;
+    }
+
+    /* Mejoras para los date fields con error */
+    .date-field.has-error .date-input {
+        border-bottom: 2px solid #ff5757;
+    }
+
+    /* Mejorar la visibilidad del datepicker */
+    .date-input:invalid {
+        border-bottom: 1px solid rgba(255, 87, 87, 0.5);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .date-error-message {
+            font-size: 0.8rem;
+            padding: 0.5rem 0.75rem;
+        }
+    }
 }
