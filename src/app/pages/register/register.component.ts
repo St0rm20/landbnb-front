@@ -79,3 +79,6 @@ export class RegisterComponent {
     // Helper methods para acceder a los controles
     get f() { return this.registerForm.controls; }
 }
+
+export class Register {
+}

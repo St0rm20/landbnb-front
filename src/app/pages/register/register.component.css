@@ -1,3 +1,18 @@
+/* RESET COMPLETO PARA ELIMINAR MÁRGENES POR DEFECTO */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden; /* Prevenir scroll horizontal */
+}
+
 .register-page {
     position: relative;
     width: 100%;
@@ -8,8 +23,9 @@
     justify-content: center;
     color: #fff;
     overflow: hidden;
-    padding: 20px;
-    box-sizing: border-box;
+    /* ELIMINAR CUALQUIER MARGEN O PADDING */
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .body-overlay {
@@ -25,8 +41,9 @@
 .container {
     width: 100%;
     max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 15px;
+    /* ELIMINAR MARGENES Y PADDING */
+    margin: 0 !important;
+    padding: 0 !important;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -43,10 +60,13 @@
     z-index: 2;
     position: relative;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    /* ELIMINAR CUALQUIER MARGEN EXTERNO */
+    margin: 0 !important;
 }
 
 .card-body {
     padding: 3rem !important;
+    margin: 0 !important;
 }
 
 /* GRID MANUAL - Sistema de 2 columnas */
@@ -203,6 +223,12 @@
     .register-card h3 {
         font-size: 1.5rem;
     }
+
+    /* EN MÓVIL, REDUCIR PADDING PARA MEJOR USO DEL ESPACIO */
+    .register-card {
+        margin: 0 10px !important;
+        border-radius: 0.8rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -210,8 +236,9 @@
         padding: 1.5rem !important;
     }
 
-    .register-page {
-        padding: 10px;
+    .register-card {
+        margin: 0 5px !important;
+        border-radius: 0.5rem;
     }
 }
 

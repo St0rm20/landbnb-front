@@ -1,1 +1,349 @@
-/* You can add global styles to this file, and also import other style files */
+
+:root {
+    --color-primary: #4a675f;
+    --color-accent: #b97479;
+    --text-primary: #FFFFFF;
+    --text-secondary: #E0E0E0;
+    --glass-bg: rgba(255, 255, 255, 0.35);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: url('/assets/imagenes/Hostal1.jpg.webp') no-repeat center center/cover !important;
+    background-attachment: fixed !important;
+    color: var(--text-primary) !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    min-height: 100vh;
+    margin: 0;
+}
+
+.body-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    z-index: -1;
+}
+
+/* NAVBAR */
+.navbar {
+    background-color: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(5px) !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    z-index: 1000 !important;
+    border-bottom: 1px solid #dee2e6 !important;
+}
+
+.navbar .container-fluid {
+    padding: 0.5rem 2.5rem !important;
+}
+
+.logo-img {
+    height: 40px !important;
+    width: auto !important;
+    object-fit: contain !important;
+}
+
+.navbar-brand {
+    display: flex !important;
+    align-items: center !important;
+    text-decoration: none !important;
+}
+
+.navbar-brand span {
+    font-size: 1rem !important;
+    font-weight: bold !important;
+    color: var(--color-accent) !important;
+}
+
+.nav-link.text-dark {
+    color: #212529 !important;
+    font-weight: bold !important;
+    text-decoration: none !important;
+}
+
+.nav-link.text-dark:hover {
+    color: #000 !important;
+}
+
+/* HERO SECTION */
+.hero-section {
+    padding: 120px 0 60px 0 !important;
+    text-align: center !important;
+}
+
+.hero-section h1 {
+    color: var(--text-primary) !important;
+}
+
+.hero-section p {
+    color: var(--text-secondary) !important;
+}
+
+.search-bar-container {
+    background-color: var(--glass-bg) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 1rem !important;
+    padding: 1.5rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.search-bar-input-group {
+    background-color: rgba(0, 0, 0, 0.2) !important;
+    border-radius: 50rem !important;
+    padding: 0.5rem !important;
+}
+
+.search-bar-input-group .form-control-plaintext {
+    color: var(--text-secondary) !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    width: 100%;
+}
+
+.search-bar-input-group .form-control-plaintext:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.search-bar-input-group small {
+    color: var(--text-primary) !important;
+    display: block !important;
+    font-weight: bold !important;
+}
+
+.search-bar-input-group .form-control-plaintext::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.search-bar-input-group .border-end {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* FILTERS */
+.filter-icon-item {
+    text-align: center !important;
+    padding: 10px 15px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease-in-out !important;
+    color: var(--text-secondary) !important;
+}
+
+.filter-icon-item:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.filter-icon-item.active {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    color: var(--text-primary) !important;
+}
+
+.filter-icon-item i {
+    font-size: 1.5rem !important;
+    color: var(--text-primary) !important;
+}
+
+.filter-icon-item p {
+    color: inherit !important;
+}
+
+/* CARDS */
+.card {
+    background-color: var(--glass-bg) !important;
+    backdrop-filter: blur(10px) !important;
+    border-radius: 1rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    transition: all 0.3s ease !important;
+    color: var(--text-secondary) !important;
+}
+
+.card:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3) !important;
+    background-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.card-img-top {
+    height: 200px !important;
+    object-fit: cover !important;
+    border-radius: 1rem 1rem 0 0 !important;
+}
+
+.card-title {
+    color: var(--text-primary) !important;
+}
+
+.card-body {
+    padding: 1rem !important;
+}
+
+.card-text {
+    color: var(--text-secondary) !important;
+}
+
+a.text-decoration-none {
+    text-decoration: none !important;
+}
+
+/* PAGINATION */
+.pagination {
+    margin-top: 2rem !important;
+}
+
+.pagination .page-link {
+    background-color: transparent !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    color: var(--text-secondary) !important;
+    cursor: pointer !important;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--color-accent) !important;
+    border-color: var(--color-accent) !important;
+    color: var(--text-primary) !important;
+}
+
+.pagination .page-link:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-primary) !important;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: rgba(255, 255, 255, 0.5) !important;
+    cursor: not-allowed !important;
+}
+
+/* PRICE SLIDER */
+.noUi-target {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border: none !important;
+}
+
+.noUi-connect {
+    background: var(--color-accent) !important;
+}
+
+.noUi-handle {
+    background: var(--color-primary) !important;
+    border: 1px solid var(--text-primary) !important;
+    box-shadow: none !important;
+}
+
+.noUi-handle:before,
+.noUi-handle:after {
+    background: var(--text-primary) !important;
+}
+
+/* FOOTER */
+.footer {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(10px) !important;
+    color: var(--text-secondary) !important;
+    margin-top: 5rem !important;
+}
+
+.footer h5 {
+    color: var(--text-primary) !important;
+}
+
+.footer a {
+    color: var(--text-secondary) !important;
+    text-decoration: none !important;
+}
+
+.footer a:hover {
+    color: var(--text-primary) !important;
+}
+
+.footer p {
+    color: var(--text-secondary) !important;
+}
+
+/* DROPDOWN MENU */
+.dropdown-menu {
+    background-color: #2a2a2a !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+    padding: 0.5rem 0 !important;
+    margin-top: 10px !important;
+}
+
+.dropdown-item {
+    color: var(--text-secondary) !important;
+    padding: 0.5rem 1.25rem !important;
+    transition: background-color 0.2s ease, color 0.2s ease !important;
+    cursor: pointer !important;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-primary) !important;
+}
+
+.dropdown-item.text-danger {
+    color: #ff6347 !important;
+}
+
+.dropdown-item.text-danger:hover,
+.dropdown-item.text-danger:focus {
+    background-color: rgba(255, 99, 71, 0.15) !important;
+    color: #ff7e6b !important;
+}
+
+.dropdown-item i {
+    width: 20px !important;
+    text-align: center !important;
+    margin-right: 0.75rem !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.dropdown-item:hover i {
+    color: var(--text-primary) !important;
+}
+
+.dropdown-item.text-danger i {
+    color: #ff6347 !important;
+}
+
+.dropdown-header {
+    color: var(--text-primary) !important;
+    font-weight: bold !important;
+    padding: 0.75rem 1.25rem 0.5rem !important;
+}
+
+.dropdown-divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Perfil imagen */
+.rounded-circle {
+    border-radius: 50% !important;
+}
+
+/* Botón de búsqueda */
+.btn.rounded-circle {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Íconos Font Awesome */
+.fas, .fa {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+}

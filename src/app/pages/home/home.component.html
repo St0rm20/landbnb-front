@@ -1,0 +1,164 @@
+<div class="body-overlay"></div>
+
+<nav class="navbar">
+    <div class="nav-container">
+        <a class="nav-brand" routerLink="/">
+            <img src="assets/imagenes/Logo.png" alt="Logo Landbnb" class="logo-img">
+            <span class="brand-name">Landbnb</span>
+        </a>
+
+        <div class="nav-right">
+            <a class="nav-link host-link" routerLink="/crear-alojamiento">Conviértete en anfitrión</a>
+
+            <div class="dropdown">
+                <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
+                    <i class="fas fa-bars"></i>
+                </a>
+                <div class="dropdown-menu" [class.show]="dropdownOpen">
+                    <h6 class="dropdown-header">Hola, Carlos Flórez</h6>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/anfitrion">
+                        <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
+                    </a>
+                    <a class="dropdown-item" routerLink="/reservas-anfitrion">
+                        <i class="fas fa-calendar-alt"></i>Reservas
+                    </a>
+                    <a class="dropdown-item" routerLink="/estadisticas">
+                        <i class="fas fa-chart-line"></i>Métricas
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/perfil">
+                        <i class="fas fa-user-edit"></i>Editar Perfil
+                    </a>
+                    <a class="dropdown-item" routerLink="/cambiar-contrasena">
+                        <i class="fas fa-key"></i>Cambiar Contraseña
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item logout" routerLink="/iniciar-sesion">
+                        <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+
+            <a routerLink="/perfil" class="profile-link">
+                <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container hero-section">
+    <h1 class="hero-title">Encuentra tu próximo destino</h1>
+    <p class="hero-subtitle">Explora alojamientos únicos y vive experiencias inolvidables.</p>
+
+    <div class="search-container">
+        <div class="search-bar">
+            <div class="search-field">
+                <small><i class="fas fa-search"></i> Dónde</small>
+                <input type="text" placeholder="Explora destinos"
+                       [(ngModel)]="searchDestination" (input)="onDestinationChange()">
+            </div>
+            <div class="search-divider"></div>
+            <div class="search-field">
+                <small><i class="fas fa-calendar-alt"></i> Check-in</small>
+                <input type="text" placeholder="Agrega fechas" [(ngModel)]="checkinDate">
+            </div>
+            <div class="search-divider"></div>
+            <div class="search-field">
+                <small><i class="fas fa-calendar-alt"></i> Check-out</small>
+                <input type="text" placeholder="Agrega fechas" [(ngModel)]="checkoutDate">
+            </div>
+            <div class="search-divider"></div>
+            <div class="search-field">
+                <small><i class="fas fa-dollar-sign"></i> Precio</small>
+                <div class="price-slider-container">
+                    <div class="slider-track" (mousedown)="onTrackClick($event)">
+                        <div class="slider-range" [style.left]="getRangeLeft()" [style.width]="getRangeWidth()"></div>
+                        <div class="slider-handle min-handle"
+                             [style.left]="getHandlePosition('min')"
+                             (mousedown)="startDrag($event, 'min')"></div>
+                        <div class="slider-handle max-handle"
+                             [style.left]="getHandlePosition('max')"
+                             (mousedown)="startDrag($event, 'max')"></div>
+                    </div>
+                    <div class="price-labels">
+                        <span>{{minPrice | currency:'COP':'symbol-narrow':'1.0-0'}}</span>
+                        <span>{{maxPrice | currency:'COP':'symbol-narrow':'1.0-0'}}</span>
+                    </div>
+                </div>
+            </div>
+            <button class="search-btn" (click)="searchProperties()">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="container properties-section">
+    <div class="filters">
+        <div *ngFor="let filter of filters"
+             class="filter-item"
+             [class.active]="filter.active"
+             (click)="toggleFilter(filter)">
+            <i [class]="filter.icon"></i>
+            <span>{{filter.name}}</span>
+        </div>
+    </div>
+
+    <div class="properties-grid">
+        <div *ngFor="let property of filteredProperties" class="property-card">
+            <a [routerLink]="['/detalle-alojamiento', property.id]" class="card-link">
+                <div class="card">
+                    <img [src]="property.image" [alt]="property.title" class="card-image">
+                    <div class="card-content">
+                        <h3 class="card-title">{{property.title}}</h3>
+                        <p class="card-location">{{property.description}}</p>
+                        <p class="card-price">
+                            {{property.price | currency:'COP':'symbol-narrow':'1.0-0'}}
+                            <span>por noche</span>
+                        </p>
+                        <p class="card-rating">
+                            <i class="fas fa-star"></i> {{property.rating}}
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="pagination" *ngIf="totalPages > 1">
+        <button class="page-btn" [class.disabled]="currentPage === 1"
+                (click)="changePage(currentPage - 1)">
+            Anterior
+        </button>
+        <button *ngFor="let page of getPages()"
+                class="page-btn"
+                [class.active]="page === currentPage"
+                (click)="changePage(page)">
+            {{page}}
+        </button>
+        <button class="page-btn" [class.disabled]="currentPage === totalPages"
+                (click)="changePage(currentPage + 1)">
+            Siguiente
+        </button>
+    </div>
+</div>
+
+<footer class="footer">
+    <div class="footer-content">
+        <div class="footer-section">
+            <h5>Acerca de nosotros</h5>
+            <p>Somos unos estudiantes de la Universidad del Quíndio, los cuales están desarrollando un mockup de una página web de alquiler de alojamientos</p>
+        </div>
+        <div class="footer-section">
+            <h5>Enlaces útiles</h5>
+            <ul>
+                <li><a href="#!">Soporte</a></li>
+                <li><a href="#!">Términos y condiciones</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        © 2025 Copyright: <a href="#">HELMIG Mockup</a>
+    </div>
+</footer>
