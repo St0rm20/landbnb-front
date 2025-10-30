@@ -1,3 +1,4 @@
+/* ===== Variables globales ===== */
 :root {
     --color-primary: #4a675f;
     --color-accent: #b97479;
@@ -6,6 +7,13 @@
     --glass-bg: rgba(255, 255, 255, 0.35);
 }
 
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 60px 20px;
+}
+
+/* ===== Body y fondo ===== */
 body {
     background: url('/assets/imagenes/Hostal1.jpg.webp') no-repeat center center/cover;
     background-attachment: fixed;
@@ -26,16 +34,16 @@ body {
     z-index: -1;
 }
 
-/* Navbar Styles */
+/* ===== Navbar ===== */
 .navbar {
-    background-color: rgba(255, 255, 255, 0.85);
+    background-color: var(--glass-bg);
     backdrop-filter: blur(5px);
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     z-index: 1000;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding: 8px 0;
 }
 
@@ -48,15 +56,19 @@ body {
     padding: 0 20px;
 }
 
-.nav-brand {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-}
-
 .logo-img {
     height: 40px;
     width: auto;
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center; /* Centrado vertical */
+    text-decoration: none; /* Quita subrayado */
+}
+
+.navbar-brand img {
+    display: block; /* Evita que haya espacio abajo del logo */
 }
 
 .brand-name {
@@ -66,6 +78,16 @@ body {
     margin-left: 8px;
 }
 
+.navbar-brand .brand-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--color-accent);
+    margin-left: 8px;
+    text-decoration: none !important; /* Quita subrayado */
+    line-height: 1; /* Centrado vertical */
+}
+
+
 .nav-right {
     display: flex;
     align-items: center;
@@ -74,8 +96,8 @@ body {
 
 .host-link {
     color: #333;
-    text-decoration: none;
     font-weight: bold;
+    text-decoration: none;
     font-size: 0.9rem;
 }
 
@@ -89,10 +111,10 @@ body {
 
 .menu-icon {
     color: #333;
-    text-decoration: none;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     padding: 8px;
     border-radius: 4px;
+    cursor: pointer;
     transition: background-color 0.2s;
 }
 
@@ -105,7 +127,6 @@ body {
     top: 100%;
     right: 0;
     background-color: #2a2a2a;
-    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 0.75rem;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     padding: 0.5rem 0;
@@ -136,8 +157,8 @@ body {
     text-decoration: none;
     display: flex;
     align-items: center;
-    transition: all 0.2s ease;
     font-size: 0.9rem;
+    transition: all 0.2s ease;
 }
 
 .dropdown-item:hover {
@@ -167,19 +188,99 @@ body {
     object-fit: cover;
 }
 
-/* Main Content Styles */
-.property-detail-page {
-    padding-top: 80px;
-    min-height: 100vh;
-}
-
-.container {
+/* ===== Hero Section ===== */
+.hero-section {
+    padding: 120px 0 60px 0;
+    text-align: center;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
 }
 
-/* Gallery Grid */
+.hero-title {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+    font-size: 1.2rem;
+    margin-bottom: 3rem;
+    color: var(--text-secondary);
+}
+
+/* ===== Search ===== */
+.search-container {
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.search-bar {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 50rem;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+}
+
+.search-field {
+    flex: 1;
+    padding: 0 1rem;
+    min-width: 0;
+}
+
+.search-field small {
+    color: var(--text-primary);
+    font-weight: bold;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.search-field input {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+.search-field input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.search-field input:focus {
+    outline: none;
+}
+
+.search-divider {
+    width: 1px;
+    height: 24px;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.search-btn {
+    background-color: var(--color-accent);
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.search-btn:hover {
+    background-color: #a8656a;
+}
+
+/* ===== Gallery ===== */
 .gallery-grid {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr;
@@ -209,22 +310,21 @@ body {
 .gallery-item-4 { grid-area: 2 / 2 / 3 / 3; }
 .gallery-item-5 { grid-area: 2 / 3 / 3 / 4; }
 
-/* Content Layout */
+/* ===== Property Page ===== */
+.property-detail-page {
+    padding-top: 80px;
+    min-height: 100vh;
+}
+
 .content-row {
     display: flex;
     gap: 2rem;
     margin-top: 2rem;
 }
 
-.content-main {
-    flex: 7;
-}
+.content-main { flex: 7; }
+.content-sidebar { flex: 5; }
 
-.content-sidebar {
-    flex: 5;
-}
-
-/* Property Info */
 .property-header {
     display: flex;
     justify-content: space-between;
@@ -245,9 +345,7 @@ body {
     color: var(--text-secondary);
 }
 
-.property-rating i {
-    color: #ffc107;
-}
+.property-rating i { color: #ffc107; }
 
 .property-type {
     display: flex;
@@ -257,9 +355,7 @@ body {
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.property-features {
-    color: var(--text-secondary);
-}
+.property-features { color: var(--text-secondary); }
 
 .host-avatar {
     width: 60px;
@@ -268,16 +364,14 @@ body {
     object-fit: cover;
 }
 
-/* Sections */
+/* ===== Sections ===== */
 .section {
     margin: 2rem 0;
     padding: 1.5rem 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.section:last-of-type {
-    border-bottom: none;
-}
+.section:last-of-type { border-bottom: none; }
 
 .section h2 {
     font-size: 1.5rem;
@@ -286,12 +380,9 @@ body {
     color: var(--text-primary);
 }
 
-.section p {
-    line-height: 1.6;
-    color: var(--text-secondary);
-}
+.section p { line-height: 1.6; color: var(--text-secondary); }
 
-/* Amenities Grid */
+/* ===== Amenities ===== */
 .amenities-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -315,7 +406,7 @@ body {
     font-size: 1.1rem;
 }
 
-/* Map */
+/* ===== Map ===== */
 .map-container {
     height: 400px;
     border-radius: 1rem;
@@ -323,13 +414,9 @@ body {
     margin-top: 1rem;
 }
 
-.map-container iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-}
+.map-container iframe { width: 100%; height: 100%; border: 0; }
 
-/* Reviews */
+/* ===== Reviews ===== */
 .reviews-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -358,17 +445,10 @@ body {
     object-fit: cover;
 }
 
-.review-user h4 {
-    margin: 0;
-    color: var(--text-primary);
-}
+.review-user h4 { margin: 0; color: var(--text-primary); }
+.review-date { color: var(--text-secondary); font-size: 0.9rem; }
 
-.review-date {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-}
-
-/* Reservation Card */
+/* ===== Reservation Card ===== */
 .reservation-card {
     background-color: var(--glass-bg);
     backdrop-filter: blur(10px);
@@ -393,22 +473,11 @@ body {
     color: var(--text-primary);
 }
 
-.price-period {
-    color: var(--text-secondary);
-}
+.price-period { color: var(--text-secondary); }
 
-/* Form Styles */
-.form-group {
-    margin-bottom: 1rem;
-}
-
-.form-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
+/* ===== Forms ===== */
+.form-group { margin-bottom: 1rem; }
+.form-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-primary); }
 .form-control, .form-select {
     width: 100%;
     padding: 0.75rem;
@@ -418,14 +487,13 @@ body {
     color: var(--text-primary);
     font-size: 1rem;
 }
-
 .form-control:focus, .form-select:focus {
     outline: none;
     border-color: var(--color-accent);
     background-color: rgba(0, 0, 0, 0.3);
 }
 
-/* Buttons */
+/* ===== Buttons ===== */
 .btn-primary {
     background-image: linear-gradient(to right, #4a675f, #3b5049);
     border: none;
@@ -443,7 +511,7 @@ body {
     transform: translateY(-2px);
 }
 
-/* Price Breakdown */
+/* ===== Price Breakdown ===== */
 .price-breakdown {
     margin-top: 1.5rem;
     padding-top: 1.5rem;
@@ -466,89 +534,27 @@ body {
     border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Responsive */
+/* ===== Responsive ===== */
 @media (max-width: 768px) {
-    .content-row {
-        flex-direction: column;
-    }
-
+    .content-row { flex-direction: column; }
     .gallery-grid {
         grid-template-columns: 1fr;
-        grid-template-rows: 300px 200px 200px;
+        grid-template-rows: 300px 200px 200px 200px 200px;
         height: auto;
     }
-
-    .gallery-item-1 { grid-area: 1 / 1 / 2 / 2; }
-    .gallery-item-2 { grid-area: 2 / 1 / 3 / 2; }
-    .gallery-item-3 { grid-area: 3 / 1 / 4 / 2; }
-    .gallery-item-4 { grid-area: 4 / 1 / 5 / 2; }
-    .gallery-item-5 { grid-area: 5 / 1 / 6 / 2; }
-
-    .property-header {
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .reservation-card {
-        position: static;
-        margin-top: 2rem;
-    }
+    .property-header { flex-direction: column; gap: 1rem; }
+    .reservation-card { position: static; margin-top: 2rem; }
 }
 
-/* Navbar Styles - Asegurar que se vea */
-.navbar {
-    background-color: rgba(255, 255, 255, 0.95) !important;
-    backdrop-filter: blur(10px) !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    z-index: 1000 !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
-    padding: 8px 0 !important;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+
+.text-white {
+    color: #FFFFFF !important; /* Siempre blanco */
+    text-decoration: none;      /* Quita subrayado al hacer clic */
 }
 
-/* Asegurar que el contenido no quede detrás del navbar */
-.property-detail-page {
-    padding-top: 80px; /* Altura del navbar */
-    min-height: 100vh;
-}
-
-/* Logo y brand */
-.navbar-brand {
-    display: flex !important;
-    align-items: center !important;
-    text-decoration: none !important;
-}
-
-.logo-img {
-    height: 40px !important;
-    width: auto !important;
-}
-
-/* Dropdown styles */
-.dropdown-menu {
-    background-color: white !important;
-    border: 1px solid rgba(0, 0, 0, 0.1) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-}
-
-.dropdown-item {
-    color: #333 !important;
-}
-
-.dropdown-item:hover {
-    background-color: #f8f9fa !important;
-    color: #000 !important;
-}
-
-/* Enlaces del navbar */
-.nav-link {
-    color: #333 !important;
-    font-weight: 500 !important;
-}
-
-.nav-link:hover {
-    color: #b97479 !important;
+.text-white:hover,
+.text-white:active,
+.text-white:focus {
+    color: #FFFFFF !important; /* Sigue blanco en hover, clic o focus */
+    text-decoration: none;      /* Evita subrayado */
 }

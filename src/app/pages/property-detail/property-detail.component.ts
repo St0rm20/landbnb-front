@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
@@ -33,6 +33,7 @@ interface Review {
 })
 export class PropertyDetailComponent implements OnInit {
     reservationForm: FormGroup;
+    dropdownOpen = false;
 
     property: Property = {
         id: 1,
@@ -49,22 +50,17 @@ export class PropertyDetailComponent implements OnInit {
     };
 
     reviews: Review[] = [
-        {
-            user: 'Usuario A',
-            date: 'Agosto 2025',
-            comment: '¡Excelente lugar! Muy limpio y la ubicación es perfecta. Lo recomiendo 100%.',
-            avatar: 'assets/imagenes/perfil.png'
-        },
-        {
-            user: 'Usuario B',
-            date: 'Julio 2025',
-            comment: 'El alojamiento es bueno, pero la cocina podría estar mejor equipada. El anfitrión fue muy amable.',
-            avatar: 'assets/imagenes/perfil.png'
-        }
+        { user: 'Usuario A', date: 'Agosto 2025', comment: '¡Excelente lugar!', avatar: 'assets/imagenes/perfil.png' },
+        { user: 'Usuario B', date: 'Julio 2025', comment: 'El alojamiento es bueno.', avatar: 'assets/imagenes/perfil.png' }
     ];
 
     serviceFee = 65000;
-    nights = 5;
+    nights = 1; // noches iniciales
+
+    // Fechas
+    minDate: string = '';
+    minCheckoutDate: string = '';
+    dateError: string = '';
 
     constructor(private fb: FormBuilder, private route: ActivatedRoute) {
         this.reservationForm = this.fb.group({
@@ -79,8 +75,78 @@ export class PropertyDetailComponent implements OnInit {
             const propertyId = params['id'];
             console.log('Cargando propiedad:', propertyId);
         });
+
+        this.initializeDates();
     }
 
+    /** ---------------- Fechas ---------------- */
+    initializeDates(): void {
+        const today = new Date();
+        this.minDate = this.formatDate(today);
+        this.reservationForm.get('checkIn')?.setValue(this.minDate);
+
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        this.reservationForm.get('checkOut')?.setValue(this.formatDate(tomorrow));
+
+        this.updateMinCheckoutDate();
+        this.dateError = '';
+        this.updateNights();
+    }
+
+    formatDate(date: Date): string {
+        const year = date.getFullYear();
+        const month = ('0' + (date.getMonth() + 1)).slice(-2);
+        const day = ('0' + date.getDate()).slice(-2);
+        return `${year}-${month}-${day}`;
+    }
+
+    onDateChange(): void {
+        this.validateDates();
+        this.updateNights();
+    }
+
+    validateDates(): void {
+        this.dateError = '';
+        const checkIn = new Date(this.reservationForm.get('checkIn')?.value || '');
+        const checkOut = new Date(this.reservationForm.get('checkOut')?.value || '');
+
+        if (checkOut < checkIn) {
+            this.dateError = 'La fecha de salida no puede ser anterior a la fecha de entrada';
+            return;
+        }
+
+        if (checkIn.getTime() === checkOut.getTime()) {
+            this.dateError = 'La estadía debe ser de al menos una noche';
+            return;
+        }
+
+        this.updateMinCheckoutDate();
+    }
+
+    updateMinCheckoutDate(): void {
+        const checkInValue = this.reservationForm.get('checkIn')?.value;
+        if (checkInValue) {
+            const checkIn = new Date(checkInValue);
+            const minCheckout = new Date(checkIn);
+            minCheckout.setDate(minCheckout.getDate() + 1);
+            this.minCheckoutDate = this.formatDate(minCheckout);
+
+            const checkOutValue = this.reservationForm.get('checkOut')?.value;
+            if (checkOutValue && new Date(checkOutValue) <= checkIn) {
+                this.reservationForm.get('checkOut')?.setValue(this.minCheckoutDate);
+            }
+        }
+    }
+
+    updateNights(): void {
+        const checkIn = new Date(this.reservationForm.get('checkIn')?.value || '');
+        const checkOut = new Date(this.reservationForm.get('checkOut')?.value || '');
+        const diff = checkOut.getTime() - checkIn.getTime();
+        this.nights = Math.max(1, Math.ceil(diff / (1000 * 3600 * 24)));
+    }
+
+    /** ---------------- Reservas ---------------- */
     calculateSubtotal(): number {
         return this.property.price * this.nights;
     }
@@ -90,11 +156,25 @@ export class PropertyDetailComponent implements OnInit {
     }
 
     onReserve() {
-        if (this.reservationForm.valid) {
+        if (this.reservationForm.valid && !this.dateError) {
             console.log('Reservando:', this.reservationForm.value);
             alert('¡Reserva realizada con éxito!');
         } else {
-            alert('Por favor completa todos los campos requeridos.');
+            alert(this.dateError || 'Por favor completa todos los campos requeridos.');
+        }
+    }
+
+    /** ---------------- Dropdown ---------------- */
+    toggleDropdown(event: Event): void {
+        event.preventDefault();
+        this.dropdownOpen = !this.dropdownOpen;
+    }
+
+    @HostListener('document:click', ['$event'])
+    onDocumentClick(event: MouseEvent): void {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.dropdown')) {
+            this.dropdownOpen = false;
         }
     }
 
