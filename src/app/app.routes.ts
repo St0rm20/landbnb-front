@@ -9,5 +9,14 @@ export const routes: Routes = [
     { path: 'login', component: LoginComponent },
     { path: 'register', component: RegisterComponent },
     { path: 'detalle-alojamiento/:id', component: PropertyDetailComponent },
-    { path: '**', redirectTo: '' }
+    {
+        path: 'create-place',
+        loadComponent: () => import('./pages/create-place/create-place.component').then(m => m.CreatePlaceComponent)
+    },
+    {
+        path: 'accommodations-management',
+        loadComponent: () => import('./pages/accommodations-management/accommodations-management.component')
+            .then(m => m.AccommodationManagementComponent)
+    },
+    { path: '**', redirectTo: '' },
 ];

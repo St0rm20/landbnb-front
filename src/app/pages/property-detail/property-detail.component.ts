@@ -1,7 +1,9 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, AfterViewInit, HostListener } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
+import { MapService } from '../../services/map-service';
+
 
 interface Property {
     id: number;
@@ -31,7 +33,7 @@ interface Review {
     standalone: true,
     imports: [CommonModule, ReactiveFormsModule, RouterModule]
 })
-export class PropertyDetailComponent implements OnInit {
+export class PropertyDetailComponent implements OnInit, AfterViewInit {
     reservationForm: FormGroup;
     dropdownOpen = false;
 
@@ -55,14 +57,18 @@ export class PropertyDetailComponent implements OnInit {
     ];
 
     serviceFee = 65000;
-    nights = 1; // noches iniciales
+    nights = 1;
 
     // Fechas
     minDate: string = '';
     minCheckoutDate: string = '';
     dateError: string = '';
 
-    constructor(private fb: FormBuilder, private route: ActivatedRoute) {
+    constructor(
+        private fb: FormBuilder,
+        private route: ActivatedRoute,
+        private mapService: MapService
+    ) {
         this.reservationForm = this.fb.group({
             checkIn: ['', Validators.required],
             checkOut: ['', Validators.required],
@@ -70,13 +76,32 @@ export class PropertyDetailComponent implements OnInit {
         });
     }
 
-    ngOnInit() {
+    // Inicializa la información base
+    ngOnInit(): void {
         this.route.params.subscribe(params => {
             const propertyId = params['id'];
             console.log('Cargando propiedad:', propertyId);
         });
 
         this.initializeDates();
+    }
+
+    // Inicializa el mapa después de que el HTML se haya renderizado
+    ngAfterViewInit(): void {
+        // Coordenadas de ejemplo (Medellín)
+        const propertyLocation: [number, number] = [-75.5795, 6.2442];
+
+        this.mapService.initializeMap('map', propertyLocation, 14);
+
+        this.mapService.addMarker({
+            id: this.property.id,
+            title: this.property.title,
+            photoUrl: 'assets/imagenes/departamento.jpg',
+            location: {
+                latitude: propertyLocation[1],
+                longitude: propertyLocation[0]
+            }
+        });
     }
 
     /** ---------------- Fechas ---------------- */

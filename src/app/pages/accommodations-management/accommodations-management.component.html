@@ -1,0 +1,123 @@
+<div class="body-overlay"></div>
+
+<nav class="navbar navbar-expand-lg bg-light border-bottom shadow-sm">
+    <div class="container-fluid d-flex justify-content-between align-items-center py-2 px-5">
+        <a class="navbar-brand d-flex align-items-center" routerLink="/">
+            <img src="assets/imagenes/Logo.png" alt="Logo Landbnb" class="logo-img">
+            <span class="fs-6 fw-bold brand-name">Landbnb</span>
+        </a>
+
+        <div class="d-flex align-items-center ms-auto">
+            <a class="nav-link text-dark me-3 fw-bold d-none d-md-block" routerLink="/crear-alojamiento">Conviértete en anfitrión</a>
+
+            <div class="dropdown me-3 d-none d-md-block">
+                <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
+                    <img src="assets/imagenes/menu.png" alt="Menú" style="width:24px;height:24px;">
+                </a>
+                <div class="dropdown-menu" [class.show]="dropdownOpen">
+                    <h6 class="dropdown-header">Hola, Carlos Flórez</h6>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/anfitrion"><i class="fas fa-tachometer-alt"></i> Panel de Anfitrión</a>
+                    <a class="dropdown-item" routerLink="/reservas-anfitrion"><i class="fas fa-calendar-alt"></i> Reservas</a>
+                    <a class="dropdown-item" routerLink="/estadisticas"><i class="fas fa-chart-line"></i> Métricas</a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/perfil"><i class="fas fa-user-edit"></i> Editar Perfil</a>
+                    <a class="dropdown-item logout" routerLink="/iniciar-sesion"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+                </div>
+            </div>
+
+            <a routerLink="/perfil" class="profile-link">
+                <img src="assets/imagenes/perfil.png" alt="Perfil" class="rounded-circle profile-img">
+            </a>
+        </div>
+    </div>
+</nav>
+<div class="container-fluid pt-4">
+
+    <!-- LISTA DE ALOJAMIENTOS -->
+    <div class="row">
+        <div class="col-md-4 mb-3" *ngFor="let acc of accommodations">
+            <div class="card h-100">
+                <img *ngIf="acc.images?.length" [src]="acc.images[0]" class="card-img-top" alt="Imagen">
+                <div class="card-body">
+                    <h5 class="card-title">{{ acc.title }}</h5>
+                    <p class="card-text">{{ acc.city }} - ${{ acc.price }} por noche</p>
+                    <p class="card-text">Capacidad: {{ acc.capacity }} huéspedes</p>
+                    <p class="card-text">Servicios: {{ acc.services.join(', ') }}</p>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <button class="btn btn-sm btn-primary" (click)="selectAccommodation(acc)">Editar</button>
+                    <button class="btn btn-sm btn-danger" (click)="removeAccommodation(acc)">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORMULARIO DE EDICIÓN -->
+    <div *ngIf="selectedAccommodation" class="card p-4 mt-4">
+        <h3 class="text-white mb-3">Editar Alojamiento: {{ selectedAccommodation.title }}</h3>
+        <form [formGroup]="editForm" (ngSubmit)="saveChanges()">
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label>Título</label>
+                    <input type="text" formControlName="title" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label>Precio por noche</label>
+                    <input type="number" formControlName="price" class="form-control">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label>Descripción</label>
+                <textarea formControlName="description" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label>Ciudad</label>
+                    <input type="text" formControlName="city" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label>Capacidad</label>
+                    <input type="number" formControlName="capacity" class="form-control">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label>Servicios</label>
+                <div class="form-check form-check-inline" *ngFor="let s of servicesList">
+                    <input type="checkbox" class="form-check-input"
+                           [value]="s"
+                           (change)="onServiceToggle($event)"
+                           [checked]="editForm.get('services')?.value.includes(s)">
+                    <label class="form-check-label">{{ s }}</label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label>Imágenes</label>
+                <input type="file" class="form-control" multiple (change)="onFilesSelected($event)">
+                <div class="image-preview-grid mt-2">
+                    <div *ngFor="let img of selectedFiles; let i = index" class="image-preview-item">
+                        <img [src]="getImagePreview(i)" class="preview-img">
+                        <button type="button" class="btn-remove-image" (click)="removeImage(i)">✕</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label>Ubicación en el mapa</label>
+                <div id="map" class="map-container mb-2"></div>
+                <div *ngIf="selectedLocation" class="text-white">
+                    Lat: {{ selectedLocation.latitude.toFixed(6) }} |
+                    Lng: {{ selectedLocation.longitude.toFixed(6) }}
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success">Guardar Cambios</button>
+        </form>
+    </div>
+
+</div>

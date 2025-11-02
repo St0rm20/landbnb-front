@@ -558,3 +558,20 @@ body {
     color: #FFFFFF !important; /* Sigue blanco en hover, clic o focus */
     text-decoration: none;      /* Evita subrayado */
 }
+#map {
+    width: 100%;
+    height: 400px;
+    border-radius: 12px;
+    margin-top: 1rem;
+}
+
+.map-container {
+    position: relative;
+}
+
+.custom-marker {
+    background-size: cover;
+    border-radius: 50%;
+    cursor: pointer;
+}
+

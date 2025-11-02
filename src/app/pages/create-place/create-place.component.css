@@ -1,0 +1,986 @@
+/* === Variables de color === */
+:host {
+    --color-primary: #4a675f;
+    --color-accent: #b97479;
+    --color-dark: #333333;
+}
+
+/* === Fondo general con overlay === */
+.body-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    z-index: -1;
+}
+
+/* === Navbar === */
+.navbar {
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(5px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem 0;
+}
+
+.nav-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 2rem;
+    max-width: 100%;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: var(--color-accent);
+}
+
+.logo-img {
+    height: 40px;
+    width: auto;
+    margin-right: 8px;
+}
+
+.brand-name {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--color-accent);
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: var(--color-dark);
+}
+
+.host-link {
+    font-weight: bold;
+}
+
+.host-link:hover {
+    color: var(--color-accent);
+}
+
+.dropdown {
+    position: relative;
+}
+
+.menu-icon {
+    text-decoration: none;
+    color: var(--color-dark);
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 0.5rem;
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    z-index: 1001;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-header {
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: var(--color-dark);
+    margin: 0;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: rgba(0, 0, 0, 0.1);
+    margin: 0.5rem 0;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    color: var(--color-dark);
+    transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dropdown-item.logout {
+    color: #dc3545;
+}
+
+.dropdown-item i {
+    width: 20px;
+}
+
+.profile-link {
+    display: inline-block;
+}
+
+.profile-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* === Contenedor principal === */
+.container-fluid {
+    padding-top: 90px;
+}
+
+.pt-5 {
+    padding-top: 3rem !important;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -0.75rem;
+    margin-left: -0.75rem;
+}
+
+.col-lg-3,
+.col-lg-9 {
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+}
+
+@media (min-width: 992px) {
+    .col-lg-3 {
+        flex: 0 0 25%;
+        max-width: 25%;
+    }
+    .col-lg-9 {
+        flex: 0 0 75%;
+        max-width: 75%;
+    }
+}
+
+/* === Panel lateral === */
+.card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    border: none;
+    border-radius: 1rem;
+    color: white;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.2);
+    margin-bottom: 2rem;
+}
+
+.p-4 {
+    padding: 1.5rem !important;
+}
+
+.list-group {
+    display: flex;
+    flex-direction: column;
+    padding-left: 0;
+    margin-bottom: 0;
+}
+
+.list-group-item {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.3s;
+    display: block;
+}
+
+.list-group-item:hover,
+.list-group-item-action:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: #f9f9f9;
+}
+
+/* === Contenedor principal del formulario === */
+.main-content {
+    padding: 0;
+}
+
+.main-content .card {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(14px);
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    color: #fff;
+}
+
+.card-title {
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 1.25rem;
+    font-size: 1.75rem;
+}
+
+/* === Formulario === */
+.mt-4 {
+    margin-top: 1.5rem !important;
+}
+
+.mb-3 {
+    margin-bottom: 1rem !important;
+}
+
+.row > .col-md-6 {
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+}
+
+@media (min-width: 768px) {
+    .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+/* === Labels e inputs === */
+.form-label {
+    color: #fff;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    display: inline-block;
+}
+
+.form-control {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    width: 100%;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.form-control::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.form-control:focus {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-color: var(--color-accent);
+    color: #fff;
+    box-shadow: 0 0 0 0.25rem rgba(185, 116, 121, 0.25);
+    outline: 0;
+}
+
+textarea.form-control {
+    resize: vertical;
+}
+
+/* === Checkboxes === */
+.d-block {
+    display: block !important;
+}
+
+.form-check {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-check-inline {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-check-input {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: 0.5rem;
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.form-check-input:checked {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+.form-check-label {
+    color: #fff;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* === Botón principal === */
+.btn {
+    display: inline-block;
+    padding: 0.625rem 1.875rem;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.5;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 0.75rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background-image: linear-gradient(to right, #4a675f, #3b5049);
+    color: #fff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-image: linear-gradient(to right, #3b5049, #4a675f);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* === Preview de imágenes === */
+.selected-files-info {
+    margin-bottom: 1rem;
+}
+
+.image-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.image-preview-item {
+    position: relative;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.image-preview-item:hover {
+    border-color: var(--color-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.preview-img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
+}
+
+.image-name {
+    color: #fff;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.25rem;
+}
+
+.btn-remove-image {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: rgba(220, 53, 69, 0.9);
+    color: white;
+    border: 2px solid white;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+    line-height: 1;
+}
+
+.btn-remove-image:hover {
+    background-color: rgb(220, 53, 69);
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* === Mapa === */
+.map-container {
+    height: 400px !important;
+    width: 100% !important;
+    min-height: 400px !important;
+    border-radius: 1rem;
+    overflow: hidden;
+    margin-top: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    background-color: rgba(255, 255, 255, 0.1);
+    position: relative;
+}
+
+/* Asegurar que el mapa de Mapbox ocupe todo el contenedor */
+::ng-deep #map {
+    height: 100% !important;
+    width: 100% !important;
+}
+
+::ng-deep .mapboxgl-canvas {
+    cursor: crosshair !important;
+}
+
+/* Estilos para los marcadores de Mapbox */
+::ng-deep .mapboxgl-marker {
+    cursor: pointer !important;
+    z-index: 10 !important;
+}
+
+::ng-deep .mapboxgl-marker svg {
+    display: block !important;
+}
+
+/* Asegurar que el pin sea visible */
+::ng-deep .mapboxgl-marker svg path {
+    fill: #FF0000 !important;
+}
+
+::ng-deep .custom-marker {
+    border: 2px solid white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+}
+
+::ng-deep .mapboxgl-popup {
+    max-width: 200px;
+    z-index: 20;
+}
+
+::ng-deep .mapboxgl-popup-content {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 10px;
+    border-radius: 8px;
+}
+
+::ng-deep .mapboxgl-popup-content h4 {
+    margin: 0;
+    color: #333;
+    font-size: 14px;
+}
+
+/* Asegurar que los controles de navegación sean visibles */
+::ng-deep .mapboxgl-ctrl-top-right {
+    z-index: 15 !important;
+}
+
+.small {
+    font-size: 0.875rem;
+}
+
+.text-white {
+    color: #fff !important;
+}
+
+.location-coordinates {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.mt-2 {
+    margin-top: 0.5rem !important;
+}
+
+/* === Footer === */
+footer {
+    margin-top: 3rem;
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+}
+
+.bg-light {
+    background-color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.text-center {
+    text-align: center !important;
+}
+
+.text-lg-start {
+    text-align: left !important;
+}
+
+@media (min-width: 992px) {
+    .text-lg-start {
+        text-align: left !important;
+    }
+}
+
+.mt-5 {
+    margin-top: 3rem !important;
+}
+
+footer .container {
+    padding: 2rem 1rem;
+}
+
+footer .p-4 {
+    padding: 1.5rem !important;
+}
+
+footer .text-uppercase {
+    text-transform: uppercase;
+}
+
+footer h5 {
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+footer p,
+footer a {
+    color: #555;
+}
+
+footer a {
+    text-decoration: none;
+}
+
+footer a:hover {
+    color: var(--color-accent);
+    text-decoration: underline;
+}
+
+footer .list-unstyled {
+    padding-left: 0;
+    list-style: none;
+}
+
+footer .mb-0 {
+    margin-bottom: 0 !important;
+}
+
+footer .mb-4 {
+    margin-bottom: 1.5rem !important;
+}
+
+footer .mb-md-0 {
+    margin-bottom: 0 !important;
+}
+
+@media (min-width: 768px) {
+    .col-md-12 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+@media (min-width: 992px) {
+    .col-lg-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+footer .p-3 {
+    padding: 1rem !important;
+}
+
+footer .text-dark {
+    color: #333 !important;
+}
+
+/* === Responsive === */
+@media (max-width: 991px) {
+    .nav-container {
+        padding: 0.5rem 1rem;
+    }
+
+    .host-link {
+        display: none;
+    }
+
+    .col-lg-3,
+    .col-lg-9 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    .main-content .card {
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 767px) {
+    .navbar {
+        padding: 0.25rem 0;
+    }
+
+    .nav-container {
+        padding: 0.25rem 0.5rem;
+    }
+
+    .logo-img {
+        height: 32px;
+    }
+
+    .brand-name {
+        font-size: 1rem;
+    }
+
+    .card-title {
+        font-size: 1.5rem;
+    }
+
+    .main-content .card {
+        padding: 1rem;
+    }
+
+    .map-container {
+        height: 250px;
+    }
+
+    /* Estilos para el select desplegable */
+    .form-select {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 0.5rem;
+        padding: 0.625rem 0.875rem;
+        width: 100%;
+        font-size: 1rem;
+        line-height: 1.5;
+        cursor: pointer;
+    }
+
+    .form-select:focus {
+        background-color: rgba(255, 255, 255, 0.3);
+        border-color: var(--color-accent);
+        color: #fff;
+        box-shadow: 0 0 0 0.25rem rgba(185, 116, 121, 0.25);
+        outline: 0;
+    }
+
+    /* Estilos para las opciones del select */
+    .form-select option {
+        background-color: #4a675f;
+        color: #fff;
+        padding: 0.5rem;
+    }
+
+    /* Placeholder del select */
+    .form-select option[value=""] {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* === MEJORAS ESPECÍFICAS PARA EL SELECTOR DE CIUDAD Y ESPACIADO === */
+
+    /* Variables adicionales para mejor espaciado */
+    :host {
+        --spacing-xs: 0.25rem;
+        --spacing-sm: 0.5rem;
+        --spacing-md: 1rem;
+        --spacing-lg: 1.5rem;
+        --spacing-xl: 2rem;
+        --border-radius: 0.5rem;
+    }
+
+    /* === SELECTOR DE CIUDAD MEJORADO === */
+    .form-select {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: var(--border-radius);
+        padding: 0.75rem 1rem;
+        width: 100%;
+        font-size: 1rem;
+        line-height: 1.5;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+    }
+
+    /* Flecha personalizada para el select */
+    .form-select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 16px 12px;
+        padding-right: 2.5rem;
+    }
+
+    .form-select:focus {
+        background-color: rgba(255, 255, 255, 0.3);
+        border-color: var(--color-accent);
+        color: #fff;
+        box-shadow: 0 0 0 0.25rem rgba(185, 116, 121, 0.25);
+        outline: 0;
+        transform: translateY(-2px);
+    }
+
+    /* Opciones del select */
+    .form-select option {
+        background-color: #4a675f;
+        color: #fff;
+        padding: 0.75rem;
+        font-size: 1rem;
+    }
+
+    /* Placeholder del select */
+    .form-select option[value=""] {
+        color: rgba(255, 255, 255, 0.6);
+        font-style: italic;
+    }
+
+    /* === MEJORAS DE ESPACIADO GENERAL === */
+
+    /* Labels con mejor espaciado */
+    .form-label {
+        color: #fff;
+        font-weight: 600;
+        margin-bottom: var(--spacing-sm);
+        display: inline-block;
+        font-size: 1rem;
+        line-height: 1.4;
+    }
+
+    /* Inputs con mejor espaciado */
+    .form-control {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: var(--border-radius);
+        padding: 0.75rem 1rem;
+        width: 100%;
+        font-size: 1rem;
+        line-height: 1.5;
+        margin-top: var(--spacing-sm);
+        transition: all 0.3s ease;
+    }
+
+    .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .form-control:focus {
+        background-color: rgba(255, 255, 255, 0.3);
+        border-color: var(--color-accent);
+        color: #fff;
+        box-shadow: 0 0 0 0.25rem rgba(185, 116, 121, 0.25);
+        outline: 0;
+        transform: translateY(-2px);
+    }
+
+    /* Mejor espaciado entre grupos de formulario */
+    .mb-3 {
+        margin-bottom: var(--spacing-lg) !important;
+        padding: var(--spacing-sm) 0;
+    }
+
+    /* Espaciado específico para el contenedor de ciudad */
+    .col-md-6.mb-3 {
+        padding: var(--spacing-sm);
+    }
+
+    /* Checkboxes con mejor espaciado */
+    .form-check {
+        display: inline-flex;
+        align-items: center;
+        margin-right: var(--spacing-lg);
+        margin-bottom: var(--spacing-sm);
+        padding: var(--spacing-xs) 0;
+    }
+
+    .form-check-input {
+        width: 1.25rem;
+        height: 1.25rem;
+        margin-right: var(--spacing-sm);
+        cursor: pointer;
+        background-color: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        transition: all 0.3s ease;
+    }
+
+    .form-check-input:checked {
+        background-color: var(--color-accent);
+        border-color: var(--color-accent);
+        transform: scale(1.1);
+    }
+
+    .form-check-label {
+        color: #fff;
+        cursor: pointer;
+        user-select: none;
+        font-weight: 500;
+        padding-left: var(--spacing-xs);
+    }
+
+    /* Texto de ayuda con mejor espaciado */
+    .small.text-white {
+        margin-top: var(--spacing-sm);
+        margin-bottom: var(--spacing-md);
+        line-height: 1.5;
+        display: block;
+    }
+
+    /* Botón con mejor espaciado */
+    .btn {
+        display: inline-block;
+        padding: 0.875rem 2.25rem;
+        font-size: 1.05rem;
+        font-weight: 600;
+        line-height: 1.5;
+        text-align: center;
+        text-decoration: none;
+        border-radius: var(--border-radius);
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: var(--spacing-lg);
+    }
+
+    .btn-primary {
+        background-image: linear-gradient(to right, #4a675f, #3b5049);
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        padding: 0.875rem 2.5rem;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background-image: linear-gradient(to right, #3b5049, #4a675f);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Mejoras para el contenedor de imágenes */
+    .selected-files-info {
+        margin-bottom: var(--spacing-md);
+        margin-top: var(--spacing-md);
+    }
+
+    .image-preview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-md);
+    }
+
+    /* Mejoras para el mapa */
+    .map-container {
+        height: 400px !important;
+        width: 100% !important;
+        min-height: 400px !important;
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        margin-top: var(--spacing-md);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        background-color: rgba(255, 255, 255, 0.1);
+        position: relative;
+    }
+
+    .location-coordinates {
+        background: rgba(0, 0, 0, 0.3);
+        padding: var(--spacing-md);
+        border-radius: var(--border-radius);
+        font-size: 0.9rem;
+        margin-top: var(--spacing-md) !important;
+        line-height: 1.5;
+    }
+
+    /* Responsive para móviles */
+    @media (max-width: 767px) {
+        .form-select, .form-control {
+            padding: 0.875rem 1rem;
+            font-size: 1.05rem;
+        }
+
+        .form-label {
+            font-size: 1.05rem;
+        }
+
+        .col-md-6.mb-3 {
+            margin-bottom: var(--spacing-md) !important;
+        }
+
+        .form-check {
+            margin-right: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+    }
+
+}
+
+/* === SELECT DE CIUDAD ESTÉTICO Y MODERNO === */
+select, .form-select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1.8px solid rgba(185, 116, 121, 0.4);
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 15px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    transition: all 0.3s ease;
+    background-image: url("data:image/svg+xml;utf8,<svg fill='%23b97479' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+    cursor: pointer;
+}
+
+/* Hover y focus */
+select:hover, .form-select:hover {
+    border-color: var(--color-accent);
+}
+
+select:focus, .form-select:focus {
+    outline: none;
+    box-shadow: 0 0 6px rgba(185, 116, 121, 0.4);
+    border-color: var(--color-accent);
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Opciones dentro del menú desplegable */
+option {
+    background: #4a675f;
+    color: #fff;
+    padding: 10px;
+    font-size: 15px;
+}

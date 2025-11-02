@@ -1,0 +1,210 @@
+<div class="body-overlay"></div>
+
+<nav class="navbar">
+    <div class="nav-container">
+        <a class="nav-brand" routerLink="/">
+            <img src="assets/imagenes/Logo.png" alt="Logo Landbnb" class="logo-img">
+            <span class="brand-name">Landbnb</span>
+        </a>
+
+        <div class="nav-right">
+            <a class="nav-link host-link" routerLink="/crear-alojamiento">Conviértete en anfitrión</a>
+
+            <div class="dropdown">
+                <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
+                    <i class="fas fa-bars"></i>
+                </a>
+                <div class="dropdown-menu" [class.show]="dropdownOpen">
+                    <h6 class="dropdown-header">Hola, Carlos Flórez</h6>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/anfitrion">
+                        <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
+                    </a>
+                    <a class="dropdown-item" routerLink="/reservas-anfitrion">
+                        <i class="fas fa-calendar-alt"></i>Reservas
+                    </a>
+                    <a class="dropdown-item" routerLink="/estadisticas">
+                        <i class="fas fa-chart-line"></i>Métricas
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/perfil">
+                        <i class="fas fa-user-edit"></i>Editar Perfil
+                    </a>
+                    <a class="dropdown-item" routerLink="/cambiar-contrasena">
+                        <i class="fas fa-key"></i>Cambiar Contraseña
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item logout" routerLink="/iniciar-sesion">
+                        <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+
+            <a routerLink="/perfil" class="profile-link">
+                <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row pt-5">
+        <!-- LATERAL -->
+        <div class="col-lg-3">
+            <div class="card p-4">
+                <div class="list-group">
+                    <a routerLink="/anfitrion" class="list-group-item list-group-item-action">Mis Alojamientos</a>
+                    <a routerLink="/reservas-anfitrion" class="list-group-item list-group-item-action">Reservas</a>
+                    <a routerLink="/estadisticas" class="list-group-item list-group-item-action">Métricas</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- FORM -->
+        <div class="col-lg-9 main-content">
+            <div class="card p-4">
+                <h1 class="card-title text-white">Crear Nuevo Alojamiento</h1>
+
+                <form [formGroup]="createPlaceForm" (ngSubmit)="onSubmit()" class="mt-4">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Título</label>
+                            <input
+                                    type="text"
+                                    formControlName="title"
+                                    class="form-control"
+                                    placeholder="Ej: Cabaña en la montaña">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Precio por noche ($)</label>
+                            <input
+                                    type="number"
+                                    formControlName="price"
+                                    class="form-control"
+                                    placeholder="150000">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descripción detallada</label>
+                        <textarea
+                                formControlName="description"
+                                class="form-control"
+                                rows="4"
+                                placeholder="Describe tu alojamiento..."></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ciudad</label>
+                            <select formControlName="city" class="form-select">
+                                <option value="">Selecciona una ciudad</option>
+                                <option *ngFor="let city of citiesList" [value]="city">{{ city }}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Capacidad máxima (huéspedes)</label>
+                            <input
+                                    type="number"
+                                    formControlName="capacity"
+                                    class="form-control"
+                                    placeholder="4">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label d-block">Servicios</label>
+                        <div class="form-check form-check-inline" *ngFor="let s of servicesList">
+                            <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    [value]="s"
+                                    (change)="onServiceToggle($event)"
+                                    [checked]="services.includes(s)">
+                            <label class="form-check-label">{{ s }}</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Imágenes (mínimo 1, máximo 10)</label>
+                        <input
+                                type="file"
+                                class="form-control"
+                                multiple
+                                accept="image/*"
+                                (change)="onFilesSelected($event)"
+                                #fileInput>
+                        <small class="text-white d-block mt-2">
+                            💡 Consejo: Mantén presionado Ctrl (o Cmd en Mac) para seleccionar múltiples imágenes a la vez
+                        </small>
+
+                        <!-- Mostrar imágenes seleccionadas -->
+                        <div *ngIf="selectedFiles.length > 0" class="mt-3">
+                            <div class="selected-files-info">
+                                <strong class="text-white">
+                                    📸 {{ selectedFiles.length }} imagen(es) seleccionada(s):
+                                </strong>
+                            </div>
+                            <div class="image-preview-grid">
+                                <div *ngFor="let file of selectedFiles; let i = index" class="image-preview-item">
+                                    <img [src]="getImagePreview(i)" alt="Preview" class="preview-img">
+                                    <div class="image-name">{{ file.name }}</div>
+                                    <button
+                                            type="button"
+                                            class="btn-remove-image"
+                                            (click)="removeImage(i)"
+                                            title="Eliminar imagen">
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Ubicación en el mapa</label>
+                        <p class="small text-white">
+                            Haz clic en el mapa para seleccionar la ubicación exacta del alojamiento.
+                        </p>
+                        <div id="map" class="map-container"></div>
+                        <div *ngIf="selectedLocation" class="location-coordinates mt-2 text-white">
+                            <strong> Coordenadas seleccionadas:</strong><br>
+                            Latitud: {{ selectedLocation.latitude.toFixed(6) }}<br>
+                            Longitud: {{ selectedLocation.longitude.toFixed(6) }}
+                        </div>
+                    </div>
+
+                    <button
+                            type="submit"
+                            class="btn btn-primary"
+                            [disabled]="createPlaceForm.invalid || !selectedLocation">
+                        Guardar Alojamiento
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="bg-light text-center text-lg-start mt-5">
+    <div class="container p-4">
+        <div class="row">
+            <div class="col-lg-6 col-md-12 mb-4 mb-md-0">
+                <h5 class="text-uppercase" style="color: #333;">Acerca de nosotros</h5>
+                <p style="color: #555;">
+                    Somos estudiantes de la Universidad del Quindío desarrollando una página de alojamientos.
+                </p>
+            </div>
+            <div class="col-lg-6 col-md-12 mb-4 mb-md-0">
+                <h5 class="text-uppercase" style="color: #333;">Enlaces útiles</h5>
+                <ul class="list-unstyled mb-0">
+                    <li><a href="#!" class="text-dark">Soporte</a></li>
+                    <li><a href="#!" class="text-dark">Términos y condiciones</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="text-center p-3" style="background-color: rgba(0, 0, 0, 0.2);">
+        © 2025 Landbnb
+    </div>
+</footer>
