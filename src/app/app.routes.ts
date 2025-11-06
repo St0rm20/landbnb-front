@@ -15,8 +15,21 @@ export const routes: Routes = [
     },
     {
         path: 'accommodations-management',
-        loadComponent: () => import('./pages/accommodations-management/accommodations-management.component')
-            .then(m => m.AccommodationManagementComponent)
+        loadComponent: () =>
+            import('./pages/accommodations-management/accommodations-management.component')
+                .then(m => m.AccommodationManagementComponent)
     },
+
+    {
+        path: 'leave-review',
+        loadComponent: () =>
+            import('./pages/leave-review/leave-review.component').then(
+                (m) => m.LeaveReviewComponent
+            ),
+    },
+
     { path: '**', redirectTo: '' },
+
+
+
 ];

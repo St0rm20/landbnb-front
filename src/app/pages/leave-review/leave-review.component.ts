@@ -22,10 +22,12 @@ export class LeaveReviewComponent {
             alert('Por favor escribe un comentario.');
             return;
         }
+
         console.log('Comentario enviado:', {
             calificación: this.rating,
             comentario: this.comment
         });
+
         alert('¡Gracias por tu opinión!');
         this.rating = 0;
         this.comment = '';

@@ -1,11 +1,10 @@
-/* === Variables de color === */
 :host {
     --color-primary: #4a675f;
     --color-accent: #b97479;
-    --color-dark: #333333;
+    --color-dark: #333;
 }
 
-/* === Fondo general con overlay === */
+/* === Fondo === */
 .body-overlay {
     position: fixed;
     inset: 0;
@@ -14,7 +13,7 @@
     z-index: -1;
 }
 
-/* === Navbar === */
+/* === Navbar (idéntico al de Landbnb) === */
 .navbar {
     background-color: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(5px);
@@ -60,82 +59,6 @@
     gap: 1rem;
 }
 
-.nav-link {
-    text-decoration: none;
-    color: var(--color-dark);
-}
-
-.host-link {
-    font-weight: bold;
-}
-
-.host-link:hover {
-    color: var(--color-accent);
-}
-
-.dropdown {
-    position: relative;
-}
-
-.menu-icon {
-    text-decoration: none;
-    color: var(--color-dark);
-    font-size: 1.5rem;
-    cursor: pointer;
-}
-
-.dropdown-menu {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    margin-top: 0.5rem;
-    background-color: white;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    min-width: 200px;
-    z-index: 1001;
-}
-
-.dropdown-menu.show {
-    display: block;
-}
-
-.dropdown-header {
-    padding: 0.75rem 1rem;
-    font-weight: 600;
-    color: var(--color-dark);
-    margin: 0;
-}
-
-.dropdown-divider {
-    height: 1px;
-    background-color: rgba(0, 0, 0, 0.1);
-    margin: 0.5rem 0;
-}
-
-.dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    text-decoration: none;
-    color: var(--color-dark);
-    transition: background-color 0.2s;
-}
-
-.dropdown-item:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-
-.dropdown-item.logout {
-    color: #dc3545;
-}
-
-.dropdown-item i {
-    width: 20px;
-}
-
 .profile-link {
     display: inline-block;
 }
@@ -147,6 +70,7 @@
     object-fit: cover;
 }
 
+/* === Card principal === */
 .card {
     background-color: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(10px);
@@ -154,6 +78,7 @@
     color: #fff;
 }
 
+/* === Campos y botones === */
 .form-control {
     background-color: rgba(255, 255, 255, 0.2);
     border-color: rgba(255, 255, 255, 0.4);
@@ -163,12 +88,12 @@
 .form-control:focus {
     background-color: rgba(255, 255, 255, 0.3);
     border-color: var(--color-accent);
-    color: #fff;
     box-shadow: 0 0 0 0.25rem rgba(185, 116, 121, 0.25);
+    color: #fff;
 }
 
 .form-control::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.6);
 }
 
 .btn-primary {
@@ -182,8 +107,9 @@
     background-image: linear-gradient(to right, #3b5049, #4a675f);
 }
 
+/* === Estrellas === */
 .star-rating i {
-    font-size: 2.5rem;
+    font-size: 2rem;
     color: var(--color-accent);
     cursor: pointer;
     transition: transform 0.2s;

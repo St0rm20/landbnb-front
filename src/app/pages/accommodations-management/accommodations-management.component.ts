@@ -13,6 +13,7 @@ import { MapService, LocationDTO } from '../../services/map-service';
     imports: [CommonModule, ReactiveFormsModule, RouterModule]
 })
 export class AccommodationManagementComponent implements AfterViewInit, OnDestroy {
+
     AcommodationsManagmentForm: FormGroup;
 
     citiesList = [
