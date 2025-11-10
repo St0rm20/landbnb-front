@@ -1,0 +1,101 @@
+<div class="body-overlay"></div>
+
+<nav class="navbar">
+    <div class="nav-container">
+        <a class="nav-brand" routerLink="/">
+            <img src="../../../assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
+            <span class="brand-name">Landbnb</span>
+        </a>
+
+        <div class="nav-right">
+            <div class="dropdown">
+                <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
+                    <i class="fas fa-bars"></i>
+                </a>
+                <div class="dropdown-menu" [class.show]="dropdownOpen">
+                    <h6 class="dropdown-header">Hola, Carlos Flórez</h6>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/anfitrion">
+                        <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
+                    </a>
+                    <a class="dropdown-item" routerLink="/reservas-anfitrion">
+                        <i class="fas fa-calendar-alt"></i>Reservas
+                    </a>
+                    <a class="dropdown-item" routerLink="/estadisticas">
+                        <i class="fas fa-chart-line"></i>Métricas
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/perfil">
+                        <i class="fas fa-user-edit"></i>Editar Perfil
+                    </a>
+                    <a class="dropdown-item" routerLink="/cambiar-contrasena">
+                        <i class="fas fa-key"></i>Cambiar Contraseña
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item logout" routerLink="/iniciar-sesion">
+                        <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+
+            <a routerLink="/perfil" class="profile-link">
+                <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row pt-5">
+        <div class="col-lg-3">
+            <div class="sidebar">
+                <h4 class="mb-4">Panel del Anfitrión</h4>
+                <div class="list-group">
+                    <a routerLink="/anfitrion" class="list-group-item list-group-item-action">Mis Alojamientos</a>
+                    <a routerLink="/reservas-anfitrion" class="list-group-item list-group-item-action">Reservas</a>
+                    <a routerLink="/estadisticas" class="list-group-item list-group-item-action active">Métricas</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-9 main-content">
+            <h1 class="mb-2 text-white">Métricas y Estadísticas</h1>
+            <p class="lead text-white-50 mb-4">Resumen de rendimiento del último semestre</p>
+
+            <div class="row">
+                <div class="col-md-4" *ngFor="let metric of metrics">
+                    <div class="metric-card">
+                        <div class="icon"><i [class]="metric.icon"></i></div>
+                        <div class="metric-info">
+                            <h2>{{metric.value}}</h2>
+                            <p>{{metric.label}}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container mt-3">
+                <h3 class="text-white mb-4">Ingresos por Mes</h3>
+                <canvas id="ingresosChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="footer">
+    <div class="footer-content">
+        <div class="footer-section">
+            <h5>Acerca de nosotros</h5>
+            <p>Somos unos estudiantes de la Universidad del Quíndio, los cuales están desarrollando un mockup de una página web de alquiler de alojamientos</p>
+        </div>
+        <div class="footer-section">
+            <h5>Enlaces útiles</h5>
+            <ul>
+                <li><a href="#!">Soporte</a></li>
+                <li><a href="#!">Términos y condiciones</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        © 2025 Copyright: <a href="#">HELMIG Mockup</a>
+    </div>
+</footer>
