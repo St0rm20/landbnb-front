@@ -1,8 +1,8 @@
 /* === Variables de color === */
 :host {
     --color-primary: #4a675f;
-    --color-accent: #ffffff;
-    --color-dark: #333333;
+    --color-accent: #000000;
+    --color-dark: #000000;
 }
 
 /* === Fondo general con overlay === */

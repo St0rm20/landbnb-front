@@ -1,38 +1,50 @@
-:host {
+:root {
     --color-primary: #4a675f;
     --color-accent: #b97479;
     --color-dark: #000000;
+    --glass-bg: rgba(255, 255, 255, 0.35);
 }
 
-/* === Fondo === */
+body {
+    background: url('/assets/imagenes/Hostal1.jpg.webp') no-repeat center center/cover;
+    background-attachment: fixed;
+    color: #FFFFFF;
+    min-height: 100vh;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
 .body-overlay {
     position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(5px);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
     z-index: -1;
 }
 
-/* === Navbar (igual que home) === */
+/* Navbar Styles */
 .navbar {
-    background-color: rgba(255, 255, 255, 0.85);
+    background-color: rgb(0, 0, 0); /* 👈 Tu fondo negro (¡Correcto!) */
     backdrop-filter: blur(5px);
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     z-index: 1000;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 0.5rem 0;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 8px 0;
 }
 
 .nav-container {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 0.5rem 2rem;
-    max-width: 100%;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
 }
 
 .nav-brand {
@@ -50,7 +62,7 @@
 .brand-name {
     font-size: 1.25rem;
     font-weight: bold;
-    color: var(--color-accent);
+    color: var(--color-accent); /* 👈 Rosado (Visible sobre negro) */
 }
 
 .nav-right {
@@ -61,12 +73,13 @@
 
 .nav-link {
     text-decoration: none;
-    color: var(--color-dark);
+    color: #FFFFFF; /* 👈 CORREGIDO A BLANCO */
 }
 
 .host-link {
     font-weight: bold;
     font-size: 0.9rem;
+    color: #FFFFFF; /* 👈 CORREGIDO A BLANCO */
 }
 
 .host-link:hover {
@@ -79,7 +92,7 @@
 
 .menu-icon {
     text-decoration: none;
-    color: var(--color-dark);
+    color: #FFFFFF; /* 👈 CORREGIDO A BLANCO */
     font-size: 1.5rem;
     cursor: pointer;
     padding: 8px;
@@ -88,7 +101,7 @@
 }
 
 .menu-icon:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: rgba(255, 255, 255, 0.1); /* Hover blanco transparente */
 }
 
 .dropdown-menu {
@@ -140,6 +153,12 @@
     color: #fff;
 }
 
+/* Estilo para el item activo del dropdown */
+.dropdown-item.active-menu {
+    background-color: rgba(74, 103, 95, 0.3); /* Color primario con transparencia */
+    color: #fff;
+}
+
 .dropdown-item.logout {
     color: #ff6347;
 }
@@ -171,6 +190,7 @@
     margin: 0 auto;
     padding: 0 1rem;
     padding-top: 100px;
+    color: #fff;
 }
 
 .mt-5 {

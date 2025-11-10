@@ -1,0 +1,185 @@
+<div class="body-overlay"></div>
+
+<nav class="navbar">
+    <div class="nav-container">
+        <a class="nav-brand" routerLink="/">
+            <img src="../../../assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
+            <span class="brand-name">Landbnb</span>
+        </a>
+        <div class="nav-right">
+            <div class="dropdown">
+                <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
+                    <i class="fas fa-bars"></i>
+                </a>
+                <div class="dropdown-menu" [class.show]="dropdownOpen">
+                    <h6 class="dropdown-header">Hola, Carlos Flórez</h6>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/anfitrion">
+                        <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
+                    </a>
+                    <a class="dropdown-item active-menu" routerLink="/reservas-anfitrion">
+                        <i class="fas fa-calendar-alt"></i>Reservas
+                    </a>
+                    <a class="dropdown-item" routerLink="/estadisticas">
+                        <i class="fas fa-chart-line"></i>Métricas
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/perfil">
+                        <i class="fas fa-user-edit"></i>Editar Perfil
+                    </a>
+                    <a class="dropdown-item" routerLink="/cambiar-contrasena">
+                        <i class="fas fa-key"></i>Cambiar Contraseña
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item logout" routerLink="/iniciar-sesion">
+                        <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+            <a routerLink="/perfil" class="profile-link">
+                <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-5 pt-5">
+    <h1 class="mb-4">Gestión de Reservas</h1> <div class="row">
+    <div class="col-12">
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <button
+                        class="nav-link"
+                        [class.active]="activeTab === 'activas'"
+                        (click)="setActiveTab('activas')">
+                    Activas
+                </button>
+            </li>
+            <li class="nav-item">
+                <button
+                        class="nav-link"
+                        [class.active]="activeTab === 'pasadas'"
+                        (click)="setActiveTab('pasadas')">
+                    Pasadas
+                </button>
+            </li>
+            <li class="nav-item">
+                <button
+                        class="nav-link"
+                        [class.active]="activeTab === 'canceladas'"
+                        (click)="setActiveTab('canceladas')">
+                    Canceladas
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content pt-3">
+            <div *ngIf="activeTab === 'activas'">
+                <div *ngIf="activeReservations.length === 0" class="empty-state">
+                    <i class="fas fa-calendar-check"></i>
+                    <p>No tienes reservas activas</p>
+                </div>
+
+                <div *ngFor="let reservation of activeReservations" class="reserva-card">
+                    <img [src]="reservation.image" [alt]="reservation.title" class="reserva-img">
+                    <div class="reserva-info">
+                        <h5 class="reserva-title">{{ reservation.title }}</h5>
+                        <p class="reserva-dates">
+                            <i class="fas fa-user"></i>
+                            Huésped: {{ reservation.guestName }}
+                        </p>
+                        <p class="reserva-dates">
+                            <i class="fas fa-calendar"></i>
+                            Fechas: {{ reservation.checkIn }} - {{ reservation.checkOut }}
+                        </p>
+                        <p class="reserva-status">
+                            Estado:
+                            <span class="badge badge-success">{{ reservation.status }}</span>
+                        </p>
+                    </div>
+                    <button class="btn btn-primary" (click)="contactGuest(reservation)">
+                        Contactar Huésped
+                    </button>
+                </div>
+            </div>
+
+            <div *ngIf="activeTab === 'pasadas'">
+                <div *ngIf="pastReservations.length === 0" class="empty-state">
+                    <i class="fas fa-history"></i>
+                    <p>No tienes reservas pasadas</p>
+                </div>
+
+                <div *ngFor="let reservation of pastReservations" class="reserva-card">
+                    <img [src]="reservation.image" [alt]="reservation.title" class="reserva-img">
+                    <div class="reserva-info">
+                        <h5 class="reserva-title">{{ reservation.title }}</h5>
+                        <p class="reserva-dates">
+                            <i class="fas fa-user"></i>
+                            Huésped: {{ reservation.guestName }}
+                        </p>
+                        <p class="reserva-dates">
+                            <i class="fas fa-calendar"></i>
+                            Fechas: {{ reservation.checkIn }} - {{ reservation.checkOut }}
+                        </p>
+                        <p class="reserva-status">
+                            Estado:
+                            <span class="badge badge-secondary">{{ reservation.status }}</span>
+                        </p>
+                    </div>
+                    <button class="btn btn-primary" (click)="viewReview(reservation)">
+                        Ver Comentario
+                    </button>
+                </div>
+            </div>
+
+            <div *ngIf="activeTab === 'canceladas'">
+                <div *ngIf="canceledReservations.length === 0" class="empty-state">
+                    <i class="fas fa-ban"></i>
+                    <p>No tienes reservas canceladas</p>
+                </div>
+
+                <div *ngFor="let reservation of canceledReservations" class="reserva-card">
+                    <img [src]="reservation.image" [alt]="reservation.title" class="reserva-img">
+                    <div class="reserva-info">
+                        <h5 class="reserva-title">{{ reservation.title }}</h5>
+                        <p class="reserva-dates">
+                            <i class="fas fa-user"></i>
+                            Huésped: {{ reservation.guestName }}
+                        </p>
+                        <p class="reserva-dates">
+                            <i class="fas fa-calendar"></i>
+                            Fechas: {{ reservation.checkIn }} - {{ reservation.checkOut }}
+                        </p>
+                        <p class="reserva-status">
+                            Estado:
+                            <span class="badge badge-danger">{{ reservation.status }}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<footer class="footer">
+    <div class="footer-content">
+        <div class="footer-section">
+            <h5>Acerca de nosotros</h5>
+            <p>
+                Somos estudiantes de la Universidad del Quindío desarrollando un mockup
+                de una página web de alquiler de alojamientos.
+            </p>
+        </div>
+        <div class="footer-section">
+            <h5>Enlaces útiles</h5>
+            <ul>
+                <li><a href="#!">Soporte</a></li>
+                <li><a href="#!">Términos y condiciones</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        © 2025 Copyright: <a href="#">HELMIG Mockup</a>
+    </div>
+</footer>

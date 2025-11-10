@@ -57,6 +57,20 @@ export const routes: Routes = [
                 .then(m => m.ProfileUserComponent),
     },
 
+    {
+        path: 'forgot-password',
+        loadComponent: () =>
+            import('./pages/forgot-password/forgot-password.component')
+                .then(m => m.ForgotPasswordComponent),
+    },
+
+    {
+        path: 'reservations-host',
+        loadComponent: () =>
+            import('./pages/reservations-host/reservations-host.component')
+                .then(m => m.ReservationsHostComponent),
+    },
+
 
 
     { path: '**', redirectTo: '' },
