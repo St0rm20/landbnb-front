@@ -4,67 +4,121 @@
 <nav class="navbar">
     <div class="nav-container">
         <a class="nav-brand" routerLink="/">
-            <img src="../../../assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img" />
+            <img src="../../../assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
             <span class="brand-name">Landbnb</span>
         </a>
 
         <div class="nav-right">
+            <a class="nav-link host-link" routerLink="/crear-alojamiento">Conviértete en anfitrión</a>
+
+            <div class="dropdown">
+                <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
+                    <i class="fas fa-bars"></i>
+                </a>
+                <div class="dropdown-menu" [class.show]="dropdownOpen">
+                    <h6 class="dropdown-header">Hola, Carlos Flórez</h6>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/anfitrion">
+                        <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
+                    </a>
+                    <a class="dropdown-item" routerLink="/reservas-anfitrion">
+                        <i class="fas fa-calendar-alt"></i>Reservas
+                    </a>
+                    <a class="dropdown-item" routerLink="/estadisticas">
+                        <i class="fas fa-chart-line"></i>Métricas
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/perfil">
+                        <i class="fas fa-user-edit"></i>Editar Perfil
+                    </a>
+                    <a class="dropdown-item" routerLink="/cambiar-contrasena">
+                        <i class="fas fa-key"></i>Cambiar Contraseña
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item logout" routerLink="/iniciar-sesion">
+                        <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+
             <a routerLink="/perfil" class="profile-link">
-                <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img" />
+                <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
             </a>
         </div>
     </div>
 </nav>
 
 <!-- === Contenido principal === -->
-<div class="container mt-5 pt-5">
+<div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-lg-7">
             <div class="card p-4">
-                <h1 class="mb-3 text-white">Deja tu opinión</h1>
-                <p class="text-white-50 mb-4">
+                <h1 class="mb-3">Deja tu opinión</h1>
+                <p class="subtitle mb-4">
                     Tu feedback ayuda a otros viajeros a elegir y a los anfitriones a mejorar.
                 </p>
 
-                <div class="card mb-4" style="background-color: rgba(0,0,0,0.25);">
+                <!-- Tarjeta del alojamiento -->
+                <div class="card mb-4 accommodation-card">
                     <div class="card-body d-flex align-items-center">
-                        <img src="assets/imagenes/hostal3.jpg" alt="Alojamiento" class="rounded"
-                             style="width: 100px; height: 75px; object-fit: cover;">
+                        <img
+                                [src]="accommodation.image"
+                                [alt]="accommodation.name"
+                                class="accommodation-img">
                         <div class="ms-3">
-                            <h5 class="mb-1 text-white">Cabaña en la Montaña</h5>
-                            <p class="text-white-50 mb-0">Tu estadía: 01 mayo - 05 mayo, 2025</p>
+                            <h5 class="mb-1">{{ accommodation.name }}</h5>
+                            <p class="stay-dates mb-0">
+                                Tu estadía: {{ accommodation.checkIn }} - {{ accommodation.checkOut }}
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                <form (ngSubmit)="onSubmit()" #reviewForm="ngForm" novalidate>
+                <!-- Formulario -->
+                <form (ngSubmit)="onSubmit()" #reviewForm="ngForm">
+                    <!-- Calificación con estrellas -->
                     <div class="mb-4 text-center">
-                        <label class="form-label d-block fs-5 mb-3 text-white">
+                        <label class="form-label d-block fs-5 mb-3">
                             Tu Calificación General
                         </label>
                         <div class="star-rating">
                             <i *ngFor="let star of [1,2,3,4,5]"
-                               class="fa-star mx-1"
-                               [ngClass]="rating >= star ? 'fas' : 'far'"
-                               (click)="setRating(star)">
+                               [class]="rating >= star ? 'fas fa-star mx-1' : 'far fa-star mx-1'"
+                               (click)="setRating(star)"
+                               (mouseenter)="hoverRating = star"
+                               (mouseleave)="hoverRating = 0">
                             </i>
+                        </div>
+                        <small class="rating-text d-block mt-2" *ngIf="rating > 0">
+                            {{ getRatingText() }}
+                        </small>
+                    </div>
+
+                    <!-- Comentario -->
+                    <div class="mb-3">
+                        <label for="comment" class="form-label fs-5">Tu Comentario</label>
+                        <textarea
+                                class="form-control"
+                                id="comment"
+                                rows="5"
+                                placeholder="Describe tu experiencia..."
+                                maxlength="500"
+                                required
+                                [(ngModel)]="comment"
+                                name="comment"
+                                #commentInput="ngModel"></textarea>
+                        <div class="form-text text-white-50">
+                            Máximo 500 caracteres. ({{ comment.length }}/500)
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="comment" class="form-label fs-5 text-white">Tu Comentario</label>
-                        <textarea class="form-control"
-                                  id="comment"
-                                  rows="5"
-                                  placeholder="Describe tu experiencia..."
-                                  maxlength="500"
-                                  required
-                                  [(ngModel)]="comment"
-                                  name="comment"></textarea>
-                        <div class="form-text text-white-50">Máximo 500 caracteres.</div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary px-4 mt-3">Enviar Comentario</button>
+                    <!-- Botón enviar -->
+                    <button
+                            type="submit"
+                            class="btn btn-primary px-4 mt-3"
+                            [disabled]="!comment.trim() || rating === 0">
+                        Enviar Comentario
+                    </button>
                 </form>
             </div>
         </div>
