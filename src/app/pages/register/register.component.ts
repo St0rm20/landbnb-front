@@ -1,84 +1,69 @@
 import { Component } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, AbstractControl, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import Swal from 'sweetalert2';
+
+// 1. Importar el servicio y DTO correctos
+import { AuthService } from '../../services/auth-service.service';
+import { CreateUserDTO } from '../../models/create-user-dto.interface';
 
 @Component({
     selector: 'app-register',
-    standalone: true, // Si estás usando componentes standalone
-    imports: [CommonModule, ReactiveFormsModule, RouterLink], // Importa los módulos necesarios
+    standalone: true,
+    imports: [CommonModule, ReactiveFormsModule, RouterLink],
     templateUrl: './register.component.html',
     styleUrls: ['./register.component.css']
 })
 export class RegisterComponent {
+
     registerForm: FormGroup;
     submitted = false;
 
-    constructor(private fb: FormBuilder) {
-        this.registerForm = this.createForm();
-    }
-
-    createForm(): FormGroup {
-        return this.fb.group({
-            name: ['', [
-                Validators.required,
-                Validators.minLength(2),
-                Validators.maxLength(50)
-            ]],
-            email: ['', [
-                Validators.required,
-                Validators.email
-            ]],
-            phone: ['', [
-                Validators.required,
-                Validators.pattern(/^[\+]?[0-9\s\-\(\)]{10,15}$/)
-            ]],
-            dateBirth: ['', [
-                Validators.required,
-                this.ageValidator
-            ]],
-            password: ['', [
-                Validators.required,
-                Validators.minLength(8),
-                Validators.pattern(/^(?=.*[A-Z])(?=.*[0-9]).+$/)
-            ]]
+    // 2. Inyectar AuthService
+    constructor(
+        private fb: FormBuilder,
+        private authService: AuthService
+    ) {
+        // 3. Formulario
+        this.registerForm = this.fb.group({
+            name: ['', Validators.required],
+            lastName: ['', Validators.required],
+            email: ['', [Validators.required, Validators.email]],
+            phoneNumber: ['', Validators.required],
+            birthDate: ['', Validators.required],
+            password: ['', [Validators.required, Validators.minLength(6)]]
         });
     }
 
-    ageValidator(control: AbstractControl): { [key: string]: any } | null {
-        const value = control.value;
-        if (!value) return null;
-
-        const birthDate = new Date(value);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-
-        // Ajustar la edad si aún no ha pasado el cumpleaños este año
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-
-        // Verificar si es mayor de 18 años
-        if (age < 18) {
-            return { 'underage': true };
-        }
-
-        return null;
-    }
-
-    createUser(): void {
+    // 4. Lógica de registro
+    public createUser() {
         this.submitted = true;
 
-        if (this.registerForm.valid) {
-            console.log('Formulario válido:', this.registerForm.value);
-            // Aquí tu lógica para crear el usuario
+        if (this.registerForm.invalid) {
+            return;
         }
+
+        const createUserDTO = this.registerForm.value as CreateUserDTO;
+
+        // 5. Usar authService.register()
+        this.authService.register(createUserDTO).subscribe({
+            next: (data) => {
+                Swal.fire({
+                    title: 'Éxito',
+                    text: data.content,
+                    icon: 'success'
+                });
+            },
+            error: (error) => {
+                Swal.fire({
+                    title: 'Error',
+                    text: error.error.content,
+                    icon: 'error'
+                });
+            }
+        });
     }
 
-    // Helper methods para acceder a los controles
     get f() { return this.registerForm.controls; }
-}
-
-export class Register {
 }

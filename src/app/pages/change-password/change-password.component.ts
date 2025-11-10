@@ -2,7 +2,7 @@ import { Component, OnInit, HostListener } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-// import { AuthService } from '../services/auth.service'; // Descomenta cuando tengas tu servicio
+// import { AuthServiceService } from '../services/auth.service'; // Descomenta cuando tengas tu servicio
 
 @Component({
     selector: 'app-change-password',
@@ -25,7 +25,7 @@ export class ChangePasswordComponent implements OnInit {
 
     constructor(
         private fb: FormBuilder
-        // private authService: AuthService
+        // private authService: AuthServiceService
     ) { }
 
     ngOnInit(): void {
