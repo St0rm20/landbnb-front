@@ -71,7 +71,19 @@ export const routes: Routes = [
                 .then(m => m.ReservationsHostComponent),
     },
 
+    {
+        path: 'reservations-confirm',
+        loadComponent: () =>
+            import('./pages/reservations-confirm/reservations-confirm.component')
+                .then(m => m.ReservationsConfirmComponent),
+    },
 
+    {
+        path: 'statistics',
+        loadComponent: () =>
+            import('./pages/statistics/statistics.component')
+                .then(m => m.StatisticsComponent),
+    },
 
     { path: '**', redirectTo: '' },
 
