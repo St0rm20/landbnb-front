@@ -1,7 +1,8 @@
-import { Component, HostListener } from '@angular/core';
+// typescript
+import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 
 @Component({
     selector: 'app-leave-review',
@@ -10,11 +11,13 @@ import { RouterModule } from '@angular/router';
     templateUrl: './leave-review.component.html',
     styleUrls: ['./leave-review.component.css']
 })
-export class LeaveReviewComponent {
+export class LeaveReviewComponent implements OnInit {
     rating = 0;
     hoverRating = 0;
     comment = '';
     dropdownOpen = false;
+
+    accommodationId?: number;
 
     // Información del alojamiento (esto vendría de un servicio o parámetro de ruta)
     accommodation = {
@@ -23,6 +26,14 @@ export class LeaveReviewComponent {
         checkIn: '01 mayo',
         checkOut: '05 mayo, 2025'
     };
+
+    constructor(private route: ActivatedRoute) {}
+
+    ngOnInit(): void {
+        const idParam = this.route.snapshot.paramMap.get('id');
+        this.accommodationId = idParam ? +idParam : undefined;
+        console.log('Reserva id:', this.accommodationId);
+    }
 
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
@@ -55,26 +66,23 @@ export class LeaveReviewComponent {
     }
 
     onSubmit(): void {
-        // Validar que haya calificación
         if (this.rating === 0) {
             alert('Por favor selecciona una calificación con las estrellas.');
             return;
         }
 
-        // Validar que haya comentario
         if (!this.comment.trim()) {
             alert('Por favor escribe un comentario sobre tu experiencia.');
             return;
         }
 
-        // Validar longitud mínima del comentario
         if (this.comment.trim().length < 10) {
             alert('El comentario debe tener al menos 10 caracteres.');
             return;
         }
 
         const review = {
-            accommodationId: 1, // Este vendría de los parámetros de ruta
+            accommodationId: this.accommodationId ?? 1,
             rating: this.rating,
             comment: this.comment.trim(),
             date: new Date().toISOString()
@@ -82,12 +90,8 @@ export class LeaveReviewComponent {
 
         console.log('Comentario enviado:', review);
 
-        // Aquí iría la llamada al servicio HTTP
-        // this.reviewService.createReview(review).subscribe(...)
-
         alert('¡Gracias por tu opinión!\n\nTu comentario ha sido enviado correctamente.');
 
-        // Resetear el formulario
         this.rating = 0;
         this.comment = '';
         this.hoverRating = 0;

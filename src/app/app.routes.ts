@@ -28,6 +28,16 @@ export const routes: Routes = [
             ),
     },
 
+    {
+        path: 'reservations-history',
+        loadComponent: () =>
+            import('./pages/reservations-history/reservations-history.component')
+                .then(m => m.ReservationsHistoryComponent),
+    },
+
+
+
+
     { path: '**', redirectTo: '' },
 
 
