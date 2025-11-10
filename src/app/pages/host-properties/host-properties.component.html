@@ -1,0 +1,194 @@
+<div class="body-overlay"></div>
+
+<!-- === Navbar === -->
+<nav class="navbar">
+    <div class="nav-container">
+        <a class="nav-brand" routerLink="/">
+            <img src="../../../assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
+            <span class="brand-name">Landbnb</span>
+        </a>
+
+        <div class="nav-right">
+            <a class="nav-link host-link" routerLink="/crear-alojamiento">Conviértete en anfitrión</a>
+
+            <div class="dropdown">
+                <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
+                    <i class="fas fa-bars"></i>
+                </a>
+                <div class="dropdown-menu" [class.show]="dropdownOpen">
+                    <h6 class="dropdown-header">Hola, Carlos Flórez</h6>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/anfitrion">
+                        <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
+                    </a>
+                    <a class="dropdown-item" routerLink="/reservas-anfitrion">
+                        <i class="fas fa-calendar-alt"></i>Reservas
+                    </a>
+                    <a class="dropdown-item" routerLink="/estadisticas">
+                        <i class="fas fa-chart-line"></i>Métricas
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/perfil">
+                        <i class="fas fa-user-edit"></i>Editar Perfil
+                    </a>
+                    <a class="dropdown-item" routerLink="/cambiar-contrasena">
+                        <i class="fas fa-key"></i>Cambiar Contraseña
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item logout" routerLink="/iniciar-sesion">
+                        <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+
+            <a routerLink="/perfil" class="profile-link">
+                <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
+            </a>
+        </div>
+    </div>
+</nav>
+
+<!-- === Contenido principal === -->
+<div class="container-fluid mt-5">
+    <div class="row pt-5">
+        <!-- === Sidebar === -->
+        <div class="col-lg-3">
+            <div class="sidebar">
+                <h4 class="mb-4">Panel del Anfitrión</h4>
+                <div class="list-group">
+                    <a routerLink="/anfitrion"
+                       class="list-group-item list-group-item-action"
+                       routerLinkActive="active"
+                       [routerLinkActiveOptions]="{exact: true}">
+                        Mis Alojamientos
+                    </a>
+                    <a routerLink="/reservas-anfitrion"
+                       class="list-group-item list-group-item-action"
+                       routerLinkActive="active">
+                        Reservas
+                    </a>
+                    <a routerLink="/estadisticas"
+                       class="list-group-item list-group-item-action"
+                       routerLinkActive="active">
+                        Métricas
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- === Contenido principal === -->
+        <div class="col-lg-9 main-content">
+            <div class="header-section">
+                <h1 class="text-white">Mis Alojamientos</h1>
+                <button class="btn btn-primary" routerLink="/crear-alojamiento">
+                    <i class="fas fa-plus"></i>
+                    Crear nuevo alojamiento
+                </button>
+            </div>
+
+            <!-- Mensaje cuando no hay alojamientos -->
+            <div *ngIf="properties.length === 0" class="empty-state">
+                <i class="fas fa-home"></i>
+                <h3>No tienes alojamientos registrados</h3>
+                <p>Comienza creando tu primer alojamiento para empezar a recibir reservas.</p>
+                <button class="btn btn-primary" routerLink="/crear-alojamiento">
+                    <i class="fas fa-plus"></i>
+                    Crear mi primer alojamiento
+                </button>
+            </div>
+
+            <!-- Tabla de alojamientos -->
+            <div *ngIf="properties.length > 0" class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th scope="col">Título</th>
+                        <th scope="col">Ciudad</th>
+                        <th scope="col">Precio/Noche</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr *ngFor="let property of properties">
+                        <td>{{ property.title }}</td>
+                        <td>{{ property.city }}</td>
+                        <td>{{ property.price | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                        <td>
+                                <span class="badge"
+                                      [class.badge-success]="property.status === 'Activo'"
+                                      [class.badge-danger]="property.status === 'Eliminado'"
+                                      [class.badge-warning]="property.status === 'Inactivo'">
+                                    {{ property.status }}
+                                </span>
+                        </td>
+                        <td>
+                            <button
+                                    class="btn btn-sm btn-editar me-2"
+                                    (click)="editProperty(property)">
+                                <i class="fas fa-edit"></i>
+                                Editar
+                            </button>
+                            <button
+                                    class="btn btn-sm btn-outline-danger"
+                                    (click)="deleteProperty(property)"
+                                    [disabled]="property.status === 'Eliminado'">
+                                <i class="fas fa-trash"></i>
+                                Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Estadísticas rápidas -->
+            <div *ngIf="properties.length > 0" class="stats-section">
+                <div class="stat-card">
+                    <i class="fas fa-home"></i>
+                    <div class="stat-info">
+                        <h3>{{ getActiveProperties() }}</h3>
+                        <p>Alojamientos activos</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-eye"></i>
+                    <div class="stat-info">
+                        <h3>{{ getTotalViews() }}</h3>
+                        <p>Visualizaciones totales</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-star"></i>
+                    <div class="stat-info">
+                        <h3>{{ getAverageRating() }}</h3>
+                        <p>Calificación promedio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- === Footer === -->
+<footer class="footer">
+    <div class="footer-content">
+        <div class="footer-section">
+            <h5>Acerca de nosotros</h5>
+            <p>
+                Somos estudiantes de la Universidad del Quindío desarrollando un mockup
+                de una página web de alquiler de alojamientos.
+            </p>
+        </div>
+        <div class="footer-section">
+            <h5>Enlaces útiles</h5>
+            <ul>
+                <li><a href="#!">Soporte</a></li>
+                <li><a href="#!">Términos y condiciones</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        © 2025 Copyright: <a href="#">HELMIG Mockup</a>
+    </div>
+</footer>

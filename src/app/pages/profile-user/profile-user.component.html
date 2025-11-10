@@ -1,0 +1,132 @@
+<div class="body-overlay"></div>
+
+<nav class="navbar">
+    <div class="nav-container">
+        <a class="nav-brand" routerLink="/">
+            <img src="assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
+            <span class="brand-name">Landbnb</span>
+        </a>
+        <div class="nav-right">
+            <a class="nav-link host-link" routerLink="/crear-alojamiento">Conviértete en anfitrión</a>
+            <div class="dropdown">
+                <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
+                    <i class="fas fa-bars"></i>
+                </a>
+                <div class="dropdown-menu" [class.show]="dropdownOpen">
+                    <h6 class="dropdown-header">Hola, Carlos Flórez</h6>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" routerLink="/anfitrion">
+                        <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
+                    </a>
+                    <a class="dropdown-item" routerLink="/reservas-anfitrion">
+                        <i class="fas fa-calendar-alt"></i>Reservas
+                    </a>
+                    <a class="dropdown-item" routerLink="/estadisticas">
+                        <i class="fas fa-chart-line"></i>Métricas
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item active-menu" routerLink="/perfil">
+                        <i class="fas fa-user-edit"></i>Editar Perfil
+                    </a>
+                    <a class="dropdown-item" routerLink="/cambiar-contrasena">
+                        <i class="fas fa-key"></i>Cambiar Contraseña
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item logout" routerLink="/iniciar-sesion">
+                        <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+            <a routerLink="/perfil" class="profile-link">
+                <img [src]="profilePicUrl" alt="Perfil" class="profile-img">
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="main-container">
+    <div class="content-wrapper">
+
+        <div class="sidebar">
+            <h4 class="sidebar-title">Mi Perfil</h4>
+            <div class="sidebar-menu">
+                <a routerLink="/perfil" class="sidebar-item active" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+                    <i class="fas fa-user-edit"></i>
+                    <span>Editar Perfil</span>
+                </a>
+                <a routerLink="/cambiar-contrasena" class="sidebar-item" routerLinkActive="active">
+                    <i class="fas fa-key"></i>
+                    <span>Cambiar Contraseña</span>
+                </a>
+                <a routerLink="/mis-reservas" class="sidebar-item" routerLinkActive="active">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Mis Reservas</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <h1 class="card-title">Mi Perfil</h1>
+                <p class="card-subtitle">Actualiza tu información personal y foto de perfil.</p>
+
+                <div class="text-center mb-4">
+                    <img [src]="profilePicUrl" alt="Foto de perfil" class="profile-pic-lg">
+                    <div class="mt-2">
+                        <label for="profile-photo" class="btn btn-outline-secondary">Cambiar foto</label>
+                        <input type="file" id="profile-photo" class="d-none" (change)="onFotoSelected($event)">
+                    </div>
+                </div>
+
+                <form [formGroup]="perfilForm" (ngSubmit)="guardarCambios()">
+                    <div class="form-group">
+                        <label for="nombre" class="form-label"><i class="fas fa-user"></i> Nombre</label>
+                        <input type="text" class="form-control" id="nombre" formControlName="nombre">
+                    </div>
+                    <div class="form-group">
+                        <label for="Rol" class="form-label"><i class="fas fa-briefcase"></i> Rol</label>
+                        <input type="text" class="form-control" id="rol" formControlName="rol">
+                    </div>
+                    <div class="form-group">
+                        <label for="email" class="form-label"><i class="fas fa-envelope"></i> Email</label>
+                        <input type="email" class="form-control" id="email" formControlName="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="telefono" class="form-label"><i class="fas fa-phone"></i> Teléfono</label>
+                        <input type="tel" class="form-control" id="telefono" formControlName="telefono">
+                    </div>
+                    <div class="form-group">
+                        <label for="descripcion-anfitrion" class="form-label"><i class="fas fa-comment-alt"></i> Descripción</label>
+                        <textarea class="form-control" id="descripcion-anfitrion" rows="3"
+                                  placeholder="Cuéntales a tus huéspedes sobre ti..."
+                                  formControlName="descripcionAnfitrion"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-primary" [disabled]="perfilForm.invalid">
+                        <i class="fas fa-save"></i>
+                        <span>Guardar Cambios</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="footer">
+    <div class="footer-content">
+        <div class="footer-section">
+            <h5>Acerca de nosotros</h5>
+            <p>Somos unos estudiantes de la Universidad del Quíndío, los cuales están desarrollando un mockup de una página web de alquiler de alojamientos</p>
+        </div>
+        <div class="footer-section">
+            <h5>Enlaces útiles</h5>
+            <ul>
+                <li><a href="#!">Soporte</a></li>
+                <li><a href="#!">Términos y condiciones</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        © 2025 Copyright: <a href="#">HELMIG Mockup</a>
+    </div>
+</footer>

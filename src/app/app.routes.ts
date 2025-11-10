@@ -4,6 +4,7 @@ import { LoginComponent } from './pages/login/login.component';
 import { RegisterComponent } from './pages/register/register.component';
 import { PropertyDetailComponent } from './pages/property-detail/property-detail.component';
 
+
 export const routes: Routes = [
     { path: '', component: HomeComponent },
     { path: 'login', component: LoginComponent },
@@ -35,9 +36,30 @@ export const routes: Routes = [
                 .then(m => m.ReservationsHistoryComponent),
     },
 
+    {
+        path: 'host-properties',
+        loadComponent: () =>
+            import('./pages/host-properties/host-properties.component')
+                .then(m => m.HostPropertiesComponent),
+    },
+
+    {
+        path: 'change-password',
+        loadComponent: () =>
+            import('./pages/change-password/change-password.component')
+                .then(m => m.ChangePasswordComponent),
+    },
+
+    {
+        path: 'profile-user',
+        loadComponent: () =>
+            import('./pages/profile-user/profile-user.component')
+                .then(m => m.ProfileUserComponent),
+    },
+
+
 
     { path: '**', redirectTo: '' },
-
 
 
 ];
