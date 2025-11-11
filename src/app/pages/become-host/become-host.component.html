@@ -1,0 +1,109 @@
+<div class="body-overlay"></div>
+
+<nav class="navbar">
+    <div class="nav-container">
+        <a class="nav-brand" routerLink="/home">
+            <img src="assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
+            <span class="brand-name">Landbnb</span>
+        </a>
+        <div class="nav-right">
+            <ng-container *ngIf="isLoggedIn">
+                <a *ngIf="userRole === 'HOST'" class="nav-link host-link" routerLink="/host-properties">
+                    Panel de Anfitrión
+                </a>
+                <div class="dropdown">
+                    <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
+                        <i class="fas fa-bars"></i>
+                    </a>
+                    <div class="dropdown-menu" [class.show]="dropdownOpen">
+                        <h6 class="dropdown-header">Hola, {{ userName || userEmail }}</h6>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" routerLink="/profile-user">
+                            <i class="fas fa-user-edit"></i>Editar Perfil
+                        </a>
+                        <a class="dropdown-item logout" href="#" (click)="logout($event)">
+                            <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
+                        </a>
+                    </div>
+                </div>
+                <a routerLink="/profile-user" class="profile-link">
+                    <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
+                </a>
+            </ng-container>
+            <ng-container *ngIf="!isLoggedIn">
+                <a class="nav-link host-link" routerLink="/login">Iniciar Sesión</a>
+            </ng-container>
+        </div>
+    </div>
+</nav>
+
+<div class="main-container">
+    <div class="content-wrapper">
+
+        <div class="sidebar">
+            <h4 class="sidebar-title">Mi Perfil</h4>
+            <div class="sidebar-menu">
+                <a routerLink="/profile-user" class="sidebar-item" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+                    <i class="fas fa-user-edit"></i>
+                    <span>Editar Perfil</span>
+                </a>
+                <a routerLink="/cambiar-contrasena" class="sidebar-item" routerLinkActive="active">
+                    <i class="fas fa-key"></i>
+                    <span>Cambiar Contraseña</span>
+                </a>
+                <a routerLink="/reservations-history" class="sidebar-item" routerLinkActive="active">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Mis Reservas</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <h1 class="card-title">¡Conviértete en Anfitrión!</h1>
+                <p class="card-subtitle">
+                    Estás a un solo paso de empezar a ganar dinero compartiendo tu espacio.
+                    Al confirmar, aceptarás nuestros términos de servicio y tu cuenta
+                    será actualizada al rol de Anfitrión.
+                </p>
+
+                <div class="host-info-box">
+                    <i class="fas fa-home"></i>
+                    <p>Accederás al panel de anfitrión para crear y gestionar tus alojamientos.</p>
+                </div>
+                <div class="host-info-box">
+                    <i class="fas fa-calendar-alt"></i>
+                    <p>Podrás gestionar las reservas de tus huéspedes.</p>
+                </div>
+                <div class="host-info-box">
+                    <i class="fas fa-comments-dollar"></i>
+                    <p>Recibirás pagos de forma segura a través de nuestra plataforma.</p>
+                </div>
+
+                <button (click)="confirmBecomeHost()" class="btn-primary">
+                    <i class="fas fa-check-circle"></i>
+                    Confirmar y Convertirme en Anfitrión
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="footer">
+    <div class="footer-content">
+        <div class="footer-section">
+            <h5>Acerca de nosotros</h5>
+            <p>Somos unos estudiantes de la Universidad del Quindío...</p>
+        </div>
+        <div class="footer-section">
+            <h5>Enlaces útiles</h5>
+            <ul>
+                <li><a href="#!">Soporte</a></li>
+                <li><a href="#!">Términos y condiciones</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        © 2025 Copyright: <a href="#">HELMIG Mockup</a>
+    </div>
+</footer>

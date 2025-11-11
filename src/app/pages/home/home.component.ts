@@ -3,14 +3,16 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 
+// Servicios y DTOs
 import { AccommodationService } from '../../services/accommodation-service.service';
 import { TokenService } from '../../services/token-service.service';
 import { UserService} from '../../services/user-service.service';
-import { UserDto } from '../../models/user-dto.interface';
+import {UserDto} from '../../models/user-dto.interface';
 import { AccommodationDTO } from '../../models/accommodation-dto.interface';
 import { SearchAccommodationDTO } from '../../models/search-accommodation-dto.interface';
-import Swal from 'sweetalert2';
 import { ResponseDTO } from '../../models/response-dto.interface';
+import Swal from 'sweetalert2';
+
 
 interface Filter {
     name: string;
@@ -18,6 +20,7 @@ interface Filter {
     active: boolean;
     type: string;
 }
+
 
 interface PagedResponse {
     content: AccommodationDTO[];
@@ -33,6 +36,7 @@ interface PagedResponse {
 })
 export class HomeComponent implements OnInit, AfterViewInit {
 
+    // Propiedades del componente
     dropdownOpen = false;
     searchDestination: string = '';
     checkinDate: string = '';
@@ -50,6 +54,8 @@ export class HomeComponent implements OnInit, AfterViewInit {
     totalPages: number = 1;
     isSearchActive: boolean = false;
     lastSearchDTO: SearchAccommodationDTO = {};
+
+
     filters: Filter[] = [
         { name: 'Populares', icon: 'fas fa-star', active: true, type: 'popular' },
         { name: 'WiFi', icon: 'fas fa-wifi', active: false, type: 'wifi' },
@@ -59,10 +65,12 @@ export class HomeComponent implements OnInit, AfterViewInit {
         { name: 'Cocina', icon: 'fas fa-utensils', active: false, type: 'kitchen' },
         { name: 'Parking', icon: 'fas fa-parking', active: false, type: 'parking' }
     ];
+
+
     properties: AccommodationDTO[] = [];
     filteredProperties: AccommodationDTO[] = [];
 
-    // --- PROPIEDADES DE AUTENTICACIÓN ---
+    // Propiedades de Autenticación
     isLoggedIn: boolean = false;
     userName: string = '';
     userEmail: string = '';
@@ -77,9 +85,9 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
     ngOnInit(): void {
         this.initializeDates();
-        this.loadInitialAccommodations(0);
+        this.loadInitialAccommodations(0); // Carga alojamientos de la API
 
-        // --- LÓGICA DE AUTENTICACIÓN ---
+        // Carga el estado de autenticación
         this.isLoggedIn = this.tokenService.isLogged();
         if (this.isLoggedIn) {
             this.userEmail = this.tokenService.getEmail();
@@ -90,6 +98,9 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
     ngAfterViewInit(): void { }
 
+    /**
+     * Carga el perfil del usuario para obtener el nombre
+     */
     loadUserProfile(): void {
         this.userService.getProfile().subscribe({
             next: (data: UserDto) => {
@@ -97,17 +108,23 @@ export class HomeComponent implements OnInit, AfterViewInit {
             },
             error: (error: any) => {
                 console.error("Error cargando perfil del usuario", error);
-                this.userName = ''; // Dejamos que el HTML use el email
+                this.userName = ''; // Si falla, el HTML usará el email
             }
         });
     }
 
+    /**
+     * Cierra la sesión
+     */
     logout(event: Event): void {
         event.preventDefault();
         this.tokenService.logout();
         this.router.navigate(['/login']).then(() => window.location.reload());
     }
 
+    /**
+     * Carga los alojamientos iniciales (GET /api/accommodations)
+     */
     loadInitialAccommodations(page: number): void {
         this.isSearchActive = false;
         this.accommodationService.getAll(page).subscribe({
@@ -124,13 +141,18 @@ export class HomeComponent implements OnInit, AfterViewInit {
         });
     }
 
+    /**
+     * Ejecuta una búsqueda (POST /api/accommodations/search)
+     */
     runSearch(page: number): void {
         this.validateDates();
         if (this.dateError) {
             this.filteredProperties = [];
             return;
         }
+
         this.isSearchActive = true;
+
         const activeServices = this.filters
             .filter(f => f.active && f.type !== 'popular')
             .map(f => f.type);
@@ -161,6 +183,7 @@ export class HomeComponent implements OnInit, AfterViewInit {
     }
 
     // --- MÉTODOS DE EVENTOS ---
+
     searchProperties(): void { this.runSearch(0); }
     toggleFilter(filter: Filter): void { filter.active = !filter.active; this.runSearch(0); }
     onDestinationChange(): void { }

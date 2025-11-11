@@ -1,9 +1,19 @@
-import { Component, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, AfterViewInit, OnDestroy, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { RouterModule, Router } from '@angular/router';
+import { Subscription, firstValueFrom } from 'rxjs';
 import { MapService, LocationDTO } from '../../services/map-service';
+import Swal from 'sweetalert2';
+
+// 1. --- IMPORTACIONES CORREGIDAS ---
+import { TokenService } from '../../services/token-service.service';
+import { UserService} from '../../services/user-service.service';
+import{UserDto } from '../../models/user-dto.interface';
+import { ImageService } from '../../services/image-service';
+import { AccommodationService } from '../../services/accommodation-service.service';
+import { CreateAccommodationDTO } from '../../models/create-accommodation-dto.interface';
+
 
 @Component({
     selector: 'app-create-place',
@@ -12,135 +22,229 @@ import { MapService, LocationDTO } from '../../services/map-service';
     standalone: true,
     imports: [CommonModule, ReactiveFormsModule, RouterModule]
 })
-export class CreatePlaceComponent implements AfterViewInit, OnDestroy {
+export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
     createPlaceForm: FormGroup;
 
+    // --- Listas de datos (Quemadas) ---
     citiesList = [
-        'Armenia',
-        'Pereira',
-        'Manizales',
-        'Medellín',
-        'Bogotá',
-        'Cali',
-        'Cartagena',
-        'Barranquilla',
-        'Bucaramanga',
-        'Cúcuta',
-        'Ibagué',
-        'Villavicencio',
-        'Santa Marta',
-        'Montería',
-        'Valledupar',
-        'Popayán',
-        'Sincelejo',
-        'Tunja',
-        'Riohacha',
-        'Quibdó'
+        'Armenia', 'Pereira', 'Manizales', 'Medellín', 'Bogotá', 'Cali', 'Cartagena',
+        'Barranquilla', 'Bucaramanga', 'Cúcuta', 'Ibagué', 'Villavicencio',
+        'Santa Marta', 'Montería', 'Valledupar', 'Popayán', 'Sincelejo', 'Tunja',
+        'Riohacha', 'Quibdó'
     ];
-
     servicesList = ['WiFi', 'Piscina', 'Cocina', 'Mascotas', 'Aire Acondicionado', 'Parking'];
+
+    // --- Lógica del formulario ---
     services: string[] = [];
     selectedFiles: File[] = [];
     imagePreviews: string[] = [];
     selectedLocation: LocationDTO | null = null;
-    dropdownOpen = false;
     private markerSub?: Subscription;
+    isUploading: boolean = false;
 
+    // --- Propiedades del Navbar ---
+    dropdownOpen = false;
+    isLoggedIn: boolean = false;
+    userName: string = '';
+    userEmail: string = '';
+    userRole: string = '';
+
+    //
+    // --- 👇 CORRECCIÓN EN EL CONSTRUCTOR ---
+    //
     constructor(
         private fb: FormBuilder,
-        private mapService: MapService
+        private mapService: MapService,
+        private router: Router,
+        private tokenService: TokenService,
+        private userService: UserService,
+        private imageService: ImageService,
+        private accommodationService: AccommodationService
+        // ❌ ELIMINADOS CityService y AccommodationServicesService
     ) {
         this.createPlaceForm = this.fb.group({
             title: ['', [Validators.required, Validators.minLength(5)]],
-            price: [null, [Validators.required, Validators.min(1)]],
+            pricePerNight: [null, [Validators.required, Validators.min(1)]],
             description: ['', [Validators.required, Validators.minLength(20)]],
-            city: ['', Validators.required], // 🔥 Ahora será un select
-            capacity: [1, [Validators.required, Validators.min(1)]],
-            images: [null],
-            services: [[]],
-            location: [null, Validators.required]
+            city: ['', Validators.required],
+            address: ['', Validators.required],
+            maxCapacity: [1, [Validators.required, Validators.min(1)]],
+            latitude: [null, Validators.required],
+            longitude: [null, Validators.required],
+            mainImage: [''],
+            images: [[]],
+            services: [[]]
         });
+    }
+
+    ngOnInit(): void {
+        this.isLoggedIn = this.tokenService.isLogged();
+        if (this.isLoggedIn) {
+            this.userEmail = this.tokenService.getEmail();
+            this.userRole = this.tokenService.getRole();
+            this.loadUserProfile();
+        } else {
+            this.router.navigate(['/login']);
+        }
+
+        // ❌ No necesitamos llamar a loadCities() o loadServices()
+        // porque las listas ya están definidas arriba.
     }
 
     ngAfterViewInit(): void {
         setTimeout(() => this.initializeMap(), 100);
     }
 
-    private async initializeMap(): Promise<void> {
-        try {
-            const mapContainer = document.getElementById('map');
-            if (!mapContainer) {
-                alert('Error: No se pudo encontrar el contenedor del mapa');
-                return;
-            }
+    // --- MÉTODOS DEL NAVBAR ---
+    loadUserProfile(): void {
+        this.userService.getProfile().subscribe({
+            next: (data: UserDto) => { this.userName = data.name; },
+            error: (error: any) => { console.error("Error cargando perfil", error); }
+        });
+    }
 
-            const defaultCenter: [number, number] = [-75.6811, 4.5370]; // Armenia por defecto
-            const zoom = 13;
-            await this.mapService.initializeMap('map', defaultCenter, zoom);
-
-            this.markerSub = this.mapService.addMarkerOnClick().subscribe({
-                next: (coords) => {
-                    this.selectedLocation = { latitude: coords.lat, longitude: coords.lng };
-                    this.createPlaceForm.patchValue({ location: this.selectedLocation });
-                },
-                error: (err) => {
-                    console.error('Error al seleccionar ubicación:', err);
-                    alert('Error al seleccionar ubicación en el mapa');
-                }
-            });
-        } catch (error) {
-            console.error('Error al inicializar el mapa:', error);
-            alert('Error al cargar el mapa. Por favor recarga la página.');
-        }
+    @HostListener('document:click', ['$event'])
+    onDocumentClick(event: MouseEvent): void {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.dropdown')) { this.dropdownOpen = false; }
     }
 
     toggleDropdown(event: Event): void {
         event.preventDefault();
+        event.stopPropagation();
         this.dropdownOpen = !this.dropdownOpen;
+    }
+
+    logout(event: Event): void {
+        event.preventDefault();
+        this.tokenService.logout();
+        this.router.navigate(['/login']).then(() => window.location.reload());
+    }
+
+    // --- LÓGICA DE SUBIDA Y CREACIÓN ---
+
+    onFilesSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        if (!input.files || input.files.length === 0) return;
+        this.selectedFiles = Array.from(input.files);
+        if (this.selectedFiles.length > 10) {
+            Swal.fire('Error', 'Máximo 10 imágenes permitidas.', 'warning');
+            this.selectedFiles = [];
+            return;
+        }
+        this.createImagePreviews();
+    }
+
+    async uploadImages(): Promise<string[]> {
+        this.isUploading = true;
+        Swal.fire({
+            title: 'Subiendo imágenes...',
+            text: `0 de ${this.selectedFiles.length} completadas.`,
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const uploadedUrls: string[] = [];
+        let completed = 0;
+
+        for (const file of this.selectedFiles) {
+            try {
+                const data = await firstValueFrom(this.imageService.upload(file));
+                uploadedUrls.push(data.content.url);
+                completed++;
+                Swal.update({
+                    text: `${completed} de ${this.selectedFiles.length} completadas.`
+                });
+            } catch (error) {
+                console.error("Error subiendo imagen:", error);
+                this.isUploading = false;
+                Swal.fire('Error', 'No se pudo subir una de las imágenes', 'error');
+                throw error;
+            }
+        }
+
+        this.isUploading = false;
+        return uploadedUrls;
+    }
+
+    async onSubmit(): Promise<void> {
+        this.createPlaceForm.markAllAsTouched();
+
+        if (this.createPlaceForm.invalid) {
+            Swal.fire('Error', 'Por favor completa todos los campos requeridos', 'warning');
+            return;
+        }
+        if (this.selectedFiles.length === 0) {
+            Swal.fire('Error', 'Debes subir al menos una imagen.', 'warning');
+            return;
+        }
+
+        let uploadedUrls: string[] = [];
+        try {
+            uploadedUrls = await this.uploadImages();
+        } catch (error) {
+            return;
+        }
+
+        const formValue = this.createPlaceForm.value;
+        const dto: CreateAccommodationDTO = {
+            title: formValue.title,
+            description: formValue.description,
+            city: formValue.city,
+            address: formValue.address,
+            latitude: formValue.latitude,
+            longitude: formValue.longitude,
+            pricePerNight: formValue.pricePerNight,
+            maxCapacity: formValue.maxCapacity,
+            services: this.services,
+            mainImage: uploadedUrls[0],
+            images: uploadedUrls
+        };
+
+        this.accommodationService.create(dto).subscribe({
+            next: (data: any) => {
+                Swal.fire('¡Éxito!', 'Alojamiento creado correctamente', 'success');
+                this.router.navigate(['/host-properties']);
+            },
+            error: (error) => {
+                Swal.fire('Error', error.error.content || 'No se pudo crear el alojamiento', 'error');
+            }
+        });
+    }
+
+    // --- MÉTODOS AUXILIARES ---
+
+    private async initializeMap(): Promise<void> {
+        try {
+            const mapContainer = document.getElementById('map');
+            if (!mapContainer) { return; }
+            const defaultCenter: [number, number] = [-75.6811, 4.5370];
+            const zoom = 13;
+            await this.mapService.initializeMap('map', defaultCenter, zoom);
+            this.markerSub = this.mapService.addMarkerOnClick().subscribe({
+                next: (coords) => {
+                    this.selectedLocation = { latitude: coords.lat, longitude: coords.lng };
+                    this.createPlaceForm.patchValue({
+                        latitude: coords.lat,
+                        longitude: coords.lng
+                    });
+                },
+                error: (err) => { console.error('Error al seleccionar ubicación:', err); }
+            });
+        } catch (error) {
+            console.error('Error al inicializar el mapa:', error);
+        }
     }
 
     onServiceToggle(event: Event): void {
         const input = event.target as HTMLInputElement;
         const value = input.value;
-
         if (input.checked) {
             if (!this.services.includes(value)) this.services.push(value);
         } else {
             this.services = this.services.filter(s => s !== value);
         }
-
         this.createPlaceForm.get('services')?.setValue(this.services);
-    }
-
-    onFilesSelected(event: Event): void {
-        const input = event.target as HTMLInputElement;
-        if (!input.files || input.files.length === 0) return;
-
-        const files = Array.from(input.files);
-        if (files.length > 10) {
-            alert('Máximo 10 imágenes permitidas.');
-            input.value = '';
-            return;
-        }
-
-        const validFiles = files.filter(file => file.type.startsWith('image/'));
-        if (validFiles.length !== files.length) {
-            alert('Solo se permiten archivos de imagen.');
-            input.value = '';
-            return;
-        }
-
-        const maxSize = 5 * 1024 * 1024;
-        const oversizedFiles = validFiles.filter(file => file.size > maxSize);
-        if (oversizedFiles.length > 0) {
-            alert(`Algunas imágenes superan el tamaño máximo de 5MB:\n${oversizedFiles.map(f => f.name).join('\n')}`);
-            input.value = '';
-            return;
-        }
-
-        this.selectedFiles = validFiles;
-        this.createPlaceForm.get('images')?.setValue(this.selectedFiles);
-        this.createImagePreviews();
     }
 
     private createImagePreviews(): void {
@@ -162,48 +266,10 @@ export class CreatePlaceComponent implements AfterViewInit, OnDestroy {
         this.selectedFiles.splice(index, 1);
         this.imagePreviews.splice(index, 1);
         this.createPlaceForm.get('images')?.setValue(this.selectedFiles.length > 0 ? this.selectedFiles : null);
-
         if (this.selectedFiles.length === 0) {
             const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
             if (fileInput) fileInput.value = '';
         }
-    }
-
-    onSubmit(): void {
-        if (this.createPlaceForm.invalid) {
-            this.createPlaceForm.markAllAsTouched();
-            const invalidFields = Object.keys(this.createPlaceForm.controls).filter(
-                key => this.createPlaceForm.get(key)?.invalid
-            );
-            alert(`Por favor completa los siguientes campos: ${invalidFields.join(', ')}`);
-            return;
-        }
-
-        if (!this.selectedLocation) {
-            alert('Selecciona una ubicación en el mapa.');
-            return;
-        }
-
-        if (this.selectedFiles.length === 0) {
-            alert('Selecciona al menos una imagen.');
-            return;
-        }
-
-        const payload = {
-            title: this.createPlaceForm.value.title,
-            price: this.createPlaceForm.value.price,
-            description: this.createPlaceForm.value.description,
-            city: this.createPlaceForm.value.city,
-            capacity: this.createPlaceForm.value.capacity,
-            services: this.services,
-            location: this.selectedLocation,
-            imageCount: this.selectedFiles.length,
-            imageNames: this.selectedFiles.map(f => f.name),
-            imageSizes: this.selectedFiles.map(f => `${(f.size / 1024).toFixed(2)} KB`)
-        };
-
-        console.log('Alojamiento creado:', payload);
-        alert('Alojamiento creado exitosamente.');
     }
 
     ngOnDestroy(): void {

@@ -63,6 +63,13 @@ export const routes: Routes = [
     },
 
     {
+        path: 'become-host',
+        loadComponent: () =>
+            import('./pages/become-host/become-host.component')
+                .then(m => m.BecomeHostComponent),
+    },
+
+    {
         path: 'forgot-password',
         loadComponent: () =>
             import('./pages/forgot-password/forgot-password.component')
@@ -92,7 +99,7 @@ export const routes: Routes = [
 
     {
         path: 'es',
-        redirectTo: '', // Esta ruta ahora redirigirá a /login
+        redirectTo: '',
         pathMatch: 'full'
     },
 

@@ -15,8 +15,11 @@
                     Conviértete en anfitrión
                 </a>
 
-                <a *ngIf="userRole === 'HOST'" class="nav-link host-link" routerLink="/anfitrion">
-                    Panel de Anfitrión
+                <a *ngIf="userRole === 'HOST'" class="nav-link host-link" routerLink="/create-place">
+                    Crear Alojamiento
+                </a>
+                <a *ngIf="userRole === 'HOST'" class="nav-link host-link" routerLink="/host-properties">
+                    Mis Alojamientos
                 </a>
 
                 <div class="dropdown">
@@ -29,13 +32,13 @@
 
                         <ng-container *ngIf="userRole === 'HOST'">
                             <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" routerLink="/anfitrion">
+                            <a class="dropdown-item" routerLink="/host-properties">
                                 <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
                             </a>
-                            <a class="dropdown-item" routerLink="/reservas-anfitrion">
+                            <a class="dropdown-item" routerLink="/reservations-host">
                                 <i class="fas fa-calendar-alt"></i>Reservas
                             </a>
-                            <a class="dropdown-item" routerLink="/estadisticas">
+                            <a class="dropdown-item" routerLink="/statistics">
                                 <i class="fas fa-chart-line"></i>Métricas
                             </a>
                         </ng-container>
@@ -44,7 +47,7 @@
                         <a class="dropdown-item" routerLink="/profile-user">
                             <i class="fas fa-user-edit"></i>Editar Perfil
                         </a>
-                        <a class="dropdown-item" routerLink="/cambiar-contrasena">
+                        <a class="dropdown-item" routerLink="/change-password">
                             <i class="fas fa-key"></i>Cambiar Contraseña
                         </a>
                         <a class="dropdown-item" routerLink="/reservations-history">
@@ -157,8 +160,9 @@
                             <span>por noche</span>
                         </p>
                         <p class="card-rating">
-                            <i class="fas fa-star"></i> {{property.rating}}
-                            </p>
+                            <i class="fas fa-star"></i>
+                            {{ property.averageRating }}
+                        </p>
                     </div>
                 </div>
             </a>

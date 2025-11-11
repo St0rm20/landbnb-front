@@ -1,0 +1,27 @@
+/* === Importa todos los estilos de profile-user.css === */
+@import '../profile-user/profile-user.component.css';
+
+/* === Estilos específicos para esta página === */
+
+.host-info-box {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-secondary);
+}
+
+.host-info-box i {
+    font-size: 1.5rem;
+    color: var(--color-accent);
+}
+
+.btn-primary {
+    width: 100%; /* Botón grande */
+    font-size: 1.1rem;
+    padding: 1rem;
+}
