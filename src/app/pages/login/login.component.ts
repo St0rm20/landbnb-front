@@ -49,10 +49,8 @@ export class LoginComponent {
         const loginDTO = this.loginForm.value as LoginDTO;
 
         this.authService.login(loginDTO).subscribe({
-            // 👇 CORRECCIÓN: 'data' ya no es ResponseDTO, es AuthResponse
             next: (data: any) => {
 
-                // 👇 CORRECCIÓN: No usamos 'data.content.token', sino 'data.token'
                 this.tokenService.login(data.token);
 
                 this.router.navigate(['/home']).then(() => window.location.reload());
