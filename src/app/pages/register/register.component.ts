@@ -3,8 +3,6 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import Swal from 'sweetalert2';
-
-// 1. Importar el servicio y DTO correctos
 import { AuthService } from '../../services/auth-service.service';
 import { CreateUserDTO } from '../../models/create-user-dto.interface';
 
@@ -20,45 +18,47 @@ export class RegisterComponent {
     registerForm: FormGroup;
     submitted = false;
 
-    // 2. Inyectar AuthService
     constructor(
         private fb: FormBuilder,
         private authService: AuthService
     ) {
-        // 3. Formulario
         this.registerForm = this.fb.group({
-            name: ['', Validators.required],
+            name: ['', [Validators.required, Validators.minLength(2)]],
             lastName: ['', Validators.required],
             email: ['', [Validators.required, Validators.email]],
             phoneNumber: ['', Validators.required],
             birthDate: ['', Validators.required],
-            password: ['', [Validators.required, Validators.minLength(6)]]
+            password: ['', [Validators.required, Validators.minLength(8)]]
         });
     }
 
-    // 4. Lógica de registro
     public createUser() {
         this.submitted = true;
 
         if (this.registerForm.invalid) {
+            Swal.fire({
+                title: 'Campos incompletos',
+                text: 'Por favor, revisa todos los campos del formulario.',
+                icon: 'warning'
+            });
             return;
         }
 
         const createUserDTO = this.registerForm.value as CreateUserDTO;
 
-        // 5. Usar authService.register()
         this.authService.register(createUserDTO).subscribe({
-            next: (data) => {
+            next: (data: any) => {
                 Swal.fire({
-                    title: 'Éxito',
-                    text: data.content,
+                    title: '¡Registro Exitoso!',
+                    text: data.message,
                     icon: 'success'
                 });
             },
             error: (error) => {
+
                 Swal.fire({
-                    title: 'Error',
-                    text: error.error.content,
+                    title: 'Error en el Registro',
+                    text: error.error.message,
                     icon: 'error'
                 });
             }

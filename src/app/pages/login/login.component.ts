@@ -2,12 +2,15 @@ import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
-
-// Importar Servicios, DTO y Alertas
 import { AuthService } from '../../services/auth-service.service';
 import { TokenService } from '../../services/token-service.service';
 import { LoginDTO } from '../../models/login-dto.interface';
 import Swal from 'sweetalert2';
+
+
+interface AuthResponse {
+    token: string;
+}
 
 @Component({
     selector: 'app-login',
@@ -20,7 +23,6 @@ export class LoginComponent {
     loginForm: FormGroup;
     submitted = false;
 
-    // Inyectar los servicios
     constructor(
         private fb: FormBuilder,
         private router: Router,
@@ -32,48 +34,39 @@ export class LoginComponent {
 
     createForm(): FormGroup {
         return this.fb.group({
-            email: ['', [
-                Validators.required,
-                Validators.email
-            ]],
-            password: ['', [
-                Validators.required,
-                Validators.minLength(6)
-            ]]
+            email: ['', [Validators.required, Validators.email]],
+            password: ['', [Validators.required, Validators.minLength(6)]]
         });
     }
 
-    // Lógica de login actualizada
     loginUser(): void {
         this.submitted = true;
 
         if (this.loginForm.invalid) {
-            // Si el formulario es inválido, no hacemos nada más
             return;
         }
 
-        // Obtenemos los datos del formulario y los convertimos a LoginDTO
         const loginDTO = this.loginForm.value as LoginDTO;
 
         this.authService.login(loginDTO).subscribe({
-            next: (data) => {
-                // Guardamos el token usando el servicio
-                this.tokenService.login(data.content.token);
+            // 👇 CORRECCIÓN: 'data' ya no es ResponseDTO, es AuthResponse
+            next: (data: any) => {
 
-                // Redireccionamos al inicio y recargamos (como pide la guía)
-                this.router.navigate(['/']).then(() => window.location.reload());
+                // 👇 CORRECCIÓN: No usamos 'data.content.token', sino 'data.token'
+                this.tokenService.login(data.token);
+
+                this.router.navigate(['/home']).then(() => window.location.reload());
             },
             error: (error) => {
-                // Mostramos el mensaje de error del backend
+
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: error.error.content // Mensaje de error de la API
+                    text: error.error.message || 'Credenciales inválidas'
                 });
             }
         });
     }
 
-    // Getter para acceder a los controles del formulario
     get f() { return this.loginForm.controls; }
 }

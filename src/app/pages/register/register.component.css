@@ -23,7 +23,6 @@ html, body {
     justify-content: center;
     color: #fff;
     overflow: hidden;
-    /* ELIMINAR CUALQUIER MARGEN O PADDING */
     margin: 0 !important;
     padding: 0 !important;
 }

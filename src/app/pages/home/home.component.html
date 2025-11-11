@@ -2,47 +2,72 @@
 
 <nav class="navbar">
     <div class="nav-container">
-        <a class="nav-brand" routerLink="/">
+        <a class="nav-brand" routerLink="/home">
             <img src="../../../assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
             <span class="brand-name">Landbnb</span>
         </a>
 
         <div class="nav-right">
-            <a class="nav-link host-link" routerLink="/crear-alojamiento">Conviértete en anfitrión</a>
 
-            <div class="dropdown">
-                <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
-                    <i class="fas fa-bars"></i>
+            <ng-container *ngIf="isLoggedIn">
+
+                <a *ngIf="userRole === 'USER'" class="nav-link host-link" routerLink="/become-host">
+                    Conviértete en anfitrión
                 </a>
-                <div class="dropdown-menu" [class.show]="dropdownOpen">
-                    <h6 class="dropdown-header">Hola, Carlos Flórez</h6>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" routerLink="/anfitrion">
-                        <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
-                    </a>
-                    <a class="dropdown-item" routerLink="/reservas-anfitrion">
-                        <i class="fas fa-calendar-alt"></i>Reservas
-                    </a>
-                    <a class="dropdown-item" routerLink="/estadisticas">
-                        <i class="fas fa-chart-line"></i>Métricas
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" routerLink="/perfil">
-                        <i class="fas fa-user-edit"></i>Editar Perfil
-                    </a>
-                    <a class="dropdown-item" routerLink="/cambiar-contrasena">
-                        <i class="fas fa-key"></i>Cambiar Contraseña
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item logout" routerLink="/iniciar-sesion">
-                        <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
-                    </a>
-                </div>
-            </div>
 
-            <a routerLink="/perfil" class="profile-link">
-                <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
-            </a>
+                <a *ngIf="userRole === 'HOST'" class="nav-link host-link" routerLink="/anfitrion">
+                    Panel de Anfitrión
+                </a>
+
+                <div class="dropdown">
+                    <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
+                        <i class="fas fa-bars"></i>
+                    </a>
+                    <div class="dropdown-menu" [class.show]="dropdownOpen">
+
+                        <h6 class="dropdown-header">Hola, {{ userName || userEmail }}</h6>
+
+                        <ng-container *ngIf="userRole === 'HOST'">
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" routerLink="/anfitrion">
+                                <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
+                            </a>
+                            <a class="dropdown-item" routerLink="/reservas-anfitrion">
+                                <i class="fas fa-calendar-alt"></i>Reservas
+                            </a>
+                            <a class="dropdown-item" routerLink="/estadisticas">
+                                <i class="fas fa-chart-line"></i>Métricas
+                            </a>
+                        </ng-container>
+
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" routerLink="/profile-user">
+                            <i class="fas fa-user-edit"></i>Editar Perfil
+                        </a>
+                        <a class="dropdown-item" routerLink="/cambiar-contrasena">
+                            <i class="fas fa-key"></i>Cambiar Contraseña
+                        </a>
+                        <a class="dropdown-item" routerLink="/reservations-history">
+                            <i class="fas fa-calendar-check"></i>Mis Reservas
+                        </a>
+
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item logout" href="#" (click)="logout($event)">
+                            <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
+                        </a>
+                    </div>
+                </div>
+                <a routerLink="/profile-user" class="profile-link">
+                    <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
+                </a>
+            </ng-container>
+
+            <ng-container *ngIf="!isLoggedIn">
+                <a class="nav-link host-link" routerLink="/login">Conviértete en anfitrión</a>
+                <a class="nav-link host-link" routerLink="/login">Iniciar Sesión</a>
+                <a class="nav-link host-link" routerLink="/register">Regístrate</a>
+            </ng-container>
+
         </div>
     </div>
 </nav>
@@ -56,7 +81,8 @@
             <div class="search-field">
                 <small><i class="fas fa-search"></i> Dónde</small>
                 <input type="text" placeholder="Explora destinos"
-                       [(ngModel)]="searchDestination" (input)="onDestinationChange()">
+                       [(ngModel)]="searchDestination"
+                       (ngModelChange)="onDestinationChange()">
             </div>
             <div class="search-divider"></div>
             <div class="search-field date-field">
@@ -100,7 +126,6 @@
             </button>
         </div>
 
-        <!-- Mensaje de error para fechas -->
         <div *ngIf="dateError" class="date-error-message">
             <i class="fas fa-exclamation-triangle"></i>
             {{dateError}}
@@ -123,17 +148,17 @@
         <div *ngFor="let property of filteredProperties" class="property-card">
             <a [routerLink]="['/detalle-alojamiento', property.id]" class="card-link">
                 <div class="card">
-                    <img [src]="property.image" [alt]="property.title" class="card-image">
+                    <img [src]="property.mainImage" [alt]="property.title" class="card-image">
                     <div class="card-content">
                         <h3 class="card-title">{{property.title}}</h3>
                         <p class="card-location">{{property.description}}</p>
                         <p class="card-price">
-                            {{property.price | currency:'COP':'symbol-narrow':'1.0-0'}}
+                            {{property.pricePerNight | currency:'COP':'symbol-narrow':'1.0-0'}}
                             <span>por noche</span>
                         </p>
                         <p class="card-rating">
                             <i class="fas fa-star"></i> {{property.rating}}
-                        </p>
+                            </p>
                     </div>
                 </div>
             </a>
@@ -162,7 +187,7 @@
     <div class="footer-content">
         <div class="footer-section">
             <h5>Acerca de nosotros</h5>
-            <p>Somos unos estudiantes de la Universidad del Quíndio, los cuales están desarrollando un mockup de una página web de alquiler de alojamientos</p>
+            <p>Somos unos estudiantes de la Universidad del Quindío, los cuales están desarrollando un mockup de una página web de alquiler de alojamientos</p>
         </div>
         <div class="footer-section">
             <h5>Enlaces útiles</h5>

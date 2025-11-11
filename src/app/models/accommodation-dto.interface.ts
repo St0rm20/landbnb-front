@@ -9,4 +9,5 @@ export interface AccommodationDTO {
     services: string[];
     mainImage: string;
     images: string[];
+    rating: number;
 }

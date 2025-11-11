@@ -10,14 +10,13 @@ export class CityService {
     constructor() { }
 
     /**
-     * (Paso 23 - Simulado)
      * Devuelve una lista quemada de ciudades.
      */
     public getAll(): Observable<ResponseDTO> {
 
         // (Basado en tus ejemplos de .http)
         const hardcodedCities = [
-            "Medallo", // (o Medellín)
+            "Medellin",
             "Bogotá",
             "Cartagena",
             "Salento",

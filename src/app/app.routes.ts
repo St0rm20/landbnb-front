@@ -6,7 +6,12 @@ import { PropertyDetailComponent } from './pages/property-detail/property-detail
 
 
 export const routes: Routes = [
-    { path: '', component: HomeComponent },
+
+    { path: '', redirectTo: '/login', pathMatch: 'full' },
+
+    { path: 'home', component: HomeComponent },
+
+
     { path: 'login', component: LoginComponent },
     { path: 'register', component: RegisterComponent },
     { path: 'detalle-alojamiento/:id', component: PropertyDetailComponent },
@@ -85,7 +90,10 @@ export const routes: Routes = [
                 .then(m => m.StatisticsComponent),
     },
 
-    { path: '**', redirectTo: '' },
-
+    {
+        path: 'es',
+        redirectTo: '', // Esta ruta ahora redirigirá a /login
+        pathMatch: 'full'
+    },
 
 ];
