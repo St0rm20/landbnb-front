@@ -71,7 +71,7 @@
                 <p class="card-subtitle">Actualiza tu información personal y foto de perfil.</p>
 
                 <div class="text-center mb-4">
-                    <img [src]="profilePicUrl" alt="Foto de perfil" class="profile-pic-lg">
+                    <img [src]="getProfilePicUrl()" alt="Foto de perfil" class="profile-pic-lg">
                     <div class="mt-2">
                         <label for="profile-photo" class="btn btn-outline-secondary">Cambiar foto</label>
                         <input type="file" id="profile-photo" class="d-none" (change)="onFotoSelected($event)">
@@ -81,7 +81,11 @@
                 <form [formGroup]="perfilForm" (ngSubmit)="guardarCambios()">
                     <div class="form-group">
                         <label for="nombre" class="form-label"><i class="fas fa-user"></i> Nombre</label>
-                        <input type="text" class="form-control" id="nombre" formControlName="nombre">
+                        <input type="text" class="form-control" id="nombre" [value]="getUserName()">
+                    </div>
+                    <div class="form-group">
+                        <label for="nombre" class="form-label"><i class="fas fa-user"></i> Apellido</label>
+                        <input type="text" class="form-control" id="nombre" [value]="getUserLastName()">
                     </div>
                     <div class="form-group">
                         <label for="email" class="form-label"><i class="fas fa-envelope"></i> Email</label>
@@ -89,13 +93,13 @@
                     </div>
                     <div class="form-group">
                         <label for="telefono" class="form-label"><i class="fas fa-phone"></i> Teléfono</label>
-                        <input type="tel" class="form-control" id="telefono" formControlName="telefono">
+                        <input type="tel" class="form-control" id="telefono" [value]="getUserPhone()" >
                     </div>
                     <div class="form-group">
                         <label for="descripcion-anfitrion" class="form-label"><i class="fas fa-comment-alt"></i> Descripción</label>
                         <textarea class="form-control" id="descripcion-anfitrion" rows="3"
                                   placeholder="Cuéntales a tus huéspedes sobre ti..."
-                                  formControlName="descripcionAnfitrion"></textarea>
+                                   [value]="getUserBio()"></textarea>
                     </div>
 
                     <button type="submit" class="btn-primary" [disabled]="perfilForm.invalid || isLoading">

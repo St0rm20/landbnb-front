@@ -1,5 +1,5 @@
 import { Component, HostListener, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common'; // <-- CAMBIO 1: Importado DatePipe
 import { RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { UserService } from '../../services/user-service.service';
@@ -16,6 +16,7 @@ import Swal from 'sweetalert2';
         RouterModule,
         ReactiveFormsModule
     ],
+    providers: [ DatePipe ], // <-- CAMBIO 2: Añadido DatePipe a los providers
     templateUrl: './profile-user.component.html',
     styleUrls: ['./profile-user.component.css']
 })
@@ -30,7 +31,8 @@ export class ProfileUserComponent implements OnInit {
     constructor(
         private fb: FormBuilder,
         private userService: UserService,
-        private tokenService: TokenService
+        private tokenService: TokenService,
+        private datePipe: DatePipe // <-- CAMBIO 3: Inyectado DatePipe
     ) {
         this.perfilForm = this.createForm();
     }
@@ -46,7 +48,7 @@ export class ProfileUserComponent implements OnInit {
             phoneNumber: ['', [Validators.pattern(/^[+]?\d{7,15}$/)]],
             description: ['', [Validators.maxLength(500)]],
             bio: ['', [Validators.maxLength(500)]],
-            dateBirth: ['', [Validators.pattern(/^\d{4}-\d{2}-\d{2}$/)]]
+            dateBirth: ['']
         });
     }
 
@@ -57,12 +59,10 @@ export class ProfileUserComponent implements OnInit {
             next: (data: UserDto) => {
                 this.userData = data;
 
-                // Actualizar la foto de perfil si existe
-                if (data.photoProfile) {
-                    this.profilePicUrl = data.photoProfile;
+                if (data.profilePictureUrl) {
+                    this.profilePicUrl = data.profilePictureUrl;
                 }
 
-                // Rellenar el formulario con los datos del usuario
                 this.perfilForm.patchValue({
                     name: data.name || '',
                     lastName: data.lastName || '',
@@ -83,7 +83,6 @@ export class ProfileUserComponent implements OnInit {
                     text: 'No se pudo cargar la información del perfil'
                 });
 
-                // Si hay error de autenticación, redirigir al login
                 if (error.status === 401 || error.status === 403) {
                     this.tokenService.logout();
                 }
@@ -102,17 +101,45 @@ export class ProfileUserComponent implements OnInit {
         }
 
         this.isLoading = true;
+console.log('nombre dentro del formulario: ' + this.perfilForm.value.name);
+        // --- INICIO DE LA SOLUCIÓN (TRIM) ---
+        const formValues = this.perfilForm.value;
 
-        // Preparar el DTO solo con los campos que han cambiado
+        // --- INICIO DEL ARREGLO (TS2322: null vs undefined) ---
+
+        // 1. Obtenemos la fecha (puede ser string u objeto Date)
+        const rawDate = formValues.dateBirth;
+
+        // 2. Transformamos la fecha. datePipe.transform devuelve 'string | null'
+        const transformedDate = rawDate ? this.datePipe.transform(rawDate, 'yyyy-MM-dd') : null;
+
+        // 3. Convertimos 'null' a 'undefined' para que coincida con la interfaz UpdateProfileDTO
+        const formattedDate = (transformedDate === null) ? undefined : transformedDate;
+
+        // --- FIN DEL ARREGLO ---
+
+        // 4. Preparamos el DTO "limpiando" cada campo de texto
         const updateDTO: UpdateProfileDTO = {
-            ...this.perfilForm.value,
+            // Usamos .trim() para quitar espacios al inicio y al final
+            name: formValues.name ? formValues.name.trim() : '',
+            lastName: formValues.lastName ? formValues.lastName.trim() : '',
+            phoneNumber: formValues.phoneNumber ? formValues.phoneNumber.trim() : '',
+            description: formValues.description ? formValues.description.trim() : '',
+            bio: formValues.bio ? formValues.bio.trim() : '',
+
+            dateBirth: formattedDate, // <-- Ahora es 'string | undefined', lo cual es correcto
+
             photoProfile: this.profilePicUrl !== 'assets/imagenes/perfil.png' ? this.profilePicUrl : undefined
         };
+
+        // --- FIN DE LA SOLUCIÓN (TRIM) ---
+
+        // Este log ahora mostrará los datos limpios
+        console.log('Enviando este DTO (limpio) al backend:', updateDTO);
 
         this.userService.updateProfile(updateDTO).subscribe({
             next: (response) => {
                 this.isLoading = false;
-
                 Swal.fire({
                     icon: 'success',
                     title: '¡Éxito!',
@@ -120,18 +147,19 @@ export class ProfileUserComponent implements OnInit {
                     timer: 2000,
                     showConfirmButton: false
                 });
-
-                // Recargar los datos del perfil
                 this.loadUserProfile();
             },
             error: (error) => {
                 console.error('Error al actualizar perfil:', error);
                 this.isLoading = false;
-
+                let errorMessage = 'No se pudo actualizar el perfil';
+                if (error.error && error.error.content && Array.isArray(error.error.content) && error.error.content.length > 0) {
+                    errorMessage = error.error.content[0].message;
+                }
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error',
-                    text: error.error?.message || 'No se pudo actualizar el perfil'
+                    title: 'Error de validación',
+                    text: errorMessage
                 });
             }
         });
@@ -141,7 +169,6 @@ export class ProfileUserComponent implements OnInit {
         const file: File = event.target.files[0];
 
         if (file) {
-            // Validar tipo de archivo
             if (!file.type.match(/image\/(jpeg|jpg|png|gif)/)) {
                 Swal.fire({
                     icon: 'error',
@@ -151,7 +178,6 @@ export class ProfileUserComponent implements OnInit {
                 return;
             }
 
-            // Validar tamaño (máximo 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 Swal.fire({
                     icon: 'error',
@@ -164,9 +190,6 @@ export class ProfileUserComponent implements OnInit {
             const reader = new FileReader();
             reader.onload = (e: any) => {
                 this.profilePicUrl = e.target.result;
-
-                // Aquí podrías hacer una llamada al backend para subir la imagen
-                // Por ahora solo la mostramos en preview
                 console.log('Imagen cargada:', file.name);
             };
             reader.readAsDataURL(file);
@@ -199,5 +222,23 @@ export class ProfileUserComponent implements OnInit {
         return this.userData?.email || 'usuario@ejemplo.com';
     }
 
+    protected getUserLastName() {
+        return this.userData?.lastName || '';
+    }
 
+    protected getUserName() {
+        return this.userData?.name || '';
+    }
+
+    protected getUserPhone() {
+        return this.userData?.phoneNumber || '';
+    }
+
+    protected getUserBio() {
+        return this.userData?.bio || '';
+    }
+
+    protected getProfilePicUrl() {
+        return this.userData?.profilePictureUrl || this.profilePicUrl;
+    }
 }

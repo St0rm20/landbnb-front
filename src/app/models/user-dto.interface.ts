@@ -6,5 +6,5 @@ export interface UserDto {
     phoneNumber: string;
     bio: string;
     dateBirth: string;
-    photoProfile: string;
+    profilePictureUrl: string;
 }
