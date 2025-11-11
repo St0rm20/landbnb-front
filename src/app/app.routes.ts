@@ -19,11 +19,12 @@ export const routes: Routes = [
         path: 'create-place',
         loadComponent: () => import('./pages/create-place/create-place.component').then(m => m.CreatePlaceComponent)
     },
+
     {
-        path: 'accommodations-management',
+        path: 'accommodations-management/:id',
         loadComponent: () =>
             import('./pages/accommodations-management/accommodations-management.component')
-                .then(m => m.AccommodationsManagementComponent)
+                .then(m => m.AccommodationsManagementComponent),
     },
 
     {

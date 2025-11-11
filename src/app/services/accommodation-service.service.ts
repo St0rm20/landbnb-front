@@ -70,11 +70,10 @@ export class AccommodationService {
     /**
      * (Punto 10) Get My Accommodations (HOST only)
      */
-    public getMyAccommodations(page: number): Observable<ResponseDTO> {
+    public getMyAccommodations(page: number): Observable<any> {
         const params = new HttpParams().set('page', page.toString());
-        return this.http.get<ResponseDTO>(`${this.accommodationURL}/host/my-accommodations`, { params });
+        return this.http.get<any>(`${this.accommodationURL}/host/my-accommodations`, { params });
     }
-
     /**
      * (Punto 11) Get Accommodations Metrics (HOST only)
      */
@@ -84,4 +83,7 @@ export class AccommodationService {
             .set('endDate', endDate);
         return this.http.get<ResponseDTO>(`${this.accommodationURL}/${id}/metrics`, { params });
     }
+
+
+
 }

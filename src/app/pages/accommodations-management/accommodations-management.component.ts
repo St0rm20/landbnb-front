@@ -3,31 +3,45 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
+// Asumo que tu MapService emite { lat, lng }
 import { MapService, LocationDTO } from '../../services/map-service';
 import Swal from 'sweetalert2';
 
-// 1. --- IMPORTAR TODOS LOS SERVICIOS Y DTOS ---
+// DTOs
 import { TokenService } from '../../services/token-service.service';
 import { UserService} from '../../services/user-service.service';
-import {UserDto}  from '../../models/user-dto.interface';
+import {UserDto} from "../../models/user-dto.interface";
 import { ImageService } from '../../services/image-service';
 import { AccommodationService } from '../../services/accommodation-service.service';
 import { UpdateAccommodationDTO } from '../../models/update-accommodation-dto.interface';
 import { AccommodationDTO } from '../../models/accommodation-dto.interface';
 import { ResponseDTO } from '../../models/response-dto.interface';
 
+// Interfaz LngLat para el tipo emitido por el mapa (si tu MapService no la exporta)
+interface LngLat {
+    lat: number;
+    lng: number;
+}
+// Interfaz MarkerDTO (Asumimos que está importada o definida en tu proyecto)
+interface MarkerDTO {
+    id: number;
+    location: LocationDTO;
+    title: string;
+    photoUrl: string;
+}
+
+
 @Component({
-    selector: 'app-accommodations-management', // 👈 Selector
+    selector: 'app-accommodations-management',
     standalone: true,
     imports: [CommonModule, ReactiveFormsModule, RouterModule],
-    templateUrl: './accommodations-management.component.html', // 👈 HTML
-    styleUrls: ['./accommodations-management.component.css'] // 👈 CSS
+    templateUrl: './accommodations-management.component.html',
+    styleUrls: ['./accommodations-management.component.css']
 })
 export class AccommodationsManagementComponent implements OnInit, AfterViewInit, OnDestroy {
 
-    editAccommodationForm: FormGroup; // 👈 Renombrado
+    editAccommodationForm: FormGroup;
 
-    // --- Listas de datos (Quemadas) ---
     citiesList = [
         'Armenia', 'Pereira', 'Manizales', 'Medellín', 'Bogotá', 'Cali', 'Cartagena',
         'Barranquilla', 'Bucaramanga', 'Cúcuta', 'Ibagué', 'Villavicencio',
@@ -36,11 +50,10 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
     ];
     servicesList = ['WiFi', 'Piscina', 'Cocina', 'Mascotas', 'Aire Acondicionado', 'Parking'];
 
-    // --- Lógica del formulario ---
     services: string[] = [];
-    existingImageUrls: string[] = []; // 👈 Para imágenes que ya existen
-    selectedFiles: File[] = []; // 👈 Para imágenes NUEVAS
-    imagePreviews: string[] = []; // 👈 Para previews de imágenes NUEVAS
+    existingImageUrls: string[] = [];
+    selectedFiles: File[] = [];
+    imagePreviews: string[] = [];
 
     selectedLocation: LocationDTO | null = null;
     private markerSub?: Subscription;
@@ -49,7 +62,6 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
     accommodationId: number | null = null;
     isLoading: boolean = true;
 
-    // --- Propiedades del Navbar ---
     dropdownOpen = false;
     isLoggedIn: boolean = false;
     userName: string = '';
@@ -60,14 +72,13 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
         private fb: FormBuilder,
         private mapService: MapService,
         private router: Router,
-        private route: ActivatedRoute, // 👈 Inyectado
+        private route: ActivatedRoute,
         private tokenService: TokenService,
         private userService: UserService,
         private imageService: ImageService,
         private accommodationService: AccommodationService
     ) {
 
-        // --- Formulario Corregido ---
         this.editAccommodationForm = this.fb.group({
             title: ['', [Validators.required, Validators.minLength(5)]],
             pricePerNight: [null, [Validators.required, Validators.min(1)]],
@@ -75,8 +86,8 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
             city: ['', Validators.required],
             address: ['', Validators.required],
             maxCapacity: [1, [Validators.required, Validators.min(1)]],
-            latitude: [null, Validators.required], // 👈 AHORA SÍ ES REQUERIDO
-            longitude: [null, Validators.required], // 👈 AHORA SÍ ES REQUERIDO
+            latitude: [null, Validators.required],
+            longitude: [null, Validators.required],
             mainImage: [''],
             images: [[]],
             services: [[]]
@@ -84,7 +95,6 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
     }
 
     ngOnInit(): void {
-        // --- Cargar datos del Navbar ---
         this.isLoggedIn = this.tokenService.isLogged();
         if (this.isLoggedIn) {
             this.userEmail = this.tokenService.getEmail();
@@ -94,7 +104,6 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
             this.router.navigate(['/login']);
         }
 
-        // --- LÓGICA DE CARGA DE DATOS PARA EDITAR ---
         const idParam = this.route.snapshot.paramMap.get('id');
         if (idParam) {
             this.accommodationId = +idParam;
@@ -105,19 +114,24 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
         }
     }
 
-    ngAfterViewInit(): void {
-        // (El mapa se inicializa DESPUÉS de cargar los datos)
-    }
+    ngAfterViewInit(): void {}
 
     /**
      * Llama a la API para obtener los datos del alojamiento
      */
     loadAccommodationData(id: number): void {
+        this.isLoading = true;
         this.accommodationService.getById(id).subscribe({
             next: (data: ResponseDTO) => {
                 const acc = data.content as AccommodationDTO;
 
-                // Rellenamos el formulario
+                if (!acc) {
+                    this.isLoading = false;
+                    Swal.fire('Error', 'No se pudieron cargar los datos del alojamiento (contenido vacío).', 'error');
+                    this.router.navigate(['/host-properties']);
+                    return;
+                }
+
                 this.editAccommodationForm.patchValue({
                     title: acc.title,
                     description: acc.description,
@@ -139,7 +153,7 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
                     longitude: acc.longitude
                 };
 
-                this.initializeMap();
+                this.initializeMap(); // 👈 Llamada al mapa
                 this.isLoading = false;
             },
             error: (err) => {
@@ -157,14 +171,6 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
         this.editAccommodationForm.markAllAsTouched();
 
         if (this.editAccommodationForm.invalid) {
-            // Log de depuración
-            console.log("Formulario Inválido. Revisando campos:");
-            Object.keys(this.editAccommodationForm.controls).forEach(key => {
-                const control = this.editAccommodationForm.get(key);
-                if (control?.invalid) {
-                    console.log(`❌ Campo [${key}] es inválido. Errores:`, control.errors);
-                }
-            });
             Swal.fire('Error', 'Por favor completa todos los campos requeridos', 'warning');
             return;
         }
@@ -178,10 +184,9 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
             }
         }
 
-        // Combinar imágenes viejas y nuevas
         const allImages = [...this.existingImageUrls, ...newUploadedUrls];
-
         const formValue = this.editAccommodationForm.value;
+
         const dto: UpdateAccommodationDTO = {
             title: formValue.title,
             description: formValue.description,
@@ -209,12 +214,54 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
 
 
     // --- (Funciones del Navbar y Auxiliares) ---
+    private async initializeMap(): Promise<void> {
+        try {
+            const mapContainer = document.getElementById('map');
+            if (!mapContainer) { return; }
+
+            const center: [number, number] = this.selectedLocation
+                ? [this.selectedLocation.longitude, this.selectedLocation.latitude]
+                : [-75.6811, 4.5370];
+
+            await this.mapService.initializeMap('map', center, 13);
+
+            if (this.selectedLocation) {
+                // 1. CORRECCIÓN: Creamos el MarkerDTO temporal
+                const markerData: MarkerDTO = {
+                    id: this.accommodationId || 0,
+                    location: this.selectedLocation,
+                    title: this.editAccommodationForm.value.title || 'Ubicación actual',
+                    photoUrl: this.existingImageUrls[0] || 'default.jpg'
+                };
+                this.mapService.addMarker(markerData); // 👈 Pasamos el MarkerDTO completo
+            }
+
+            // 2. Suscribirse a clics (Usa LngLat y convierte)
+            this.markerSub = this.mapService.addMarkerOnClick().subscribe({
+                next: (coords: LngLat) => {
+                    this.selectedLocation = {
+                        latitude: coords.lat,
+                        longitude: coords.lng
+                    };
+                    this.editAccommodationForm.patchValue({
+                        latitude: this.selectedLocation.latitude,
+                        longitude: this.selectedLocation.longitude
+                    });
+                },
+                error: (err) => { console.error('Error al seleccionar ubicación:', err); }
+            });
+
+        } catch (error) {
+            console.error('Error al inicializar el mapa:', error);
+        }
+    }
+
+    // (Omito el resto de funciones auxiliares por espacio, pero se mantienen igual)
     loadUserProfile(): void { this.userService.getProfile().subscribe({ next: (data: UserDto) => { this.userName = data.name; }, error: (error: any) => { console.error("Error cargando perfil", error); } }); }
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void { const target = event.target as HTMLElement; if (!target.closest('.dropdown')) { this.dropdownOpen = false; } }
     toggleDropdown(event: Event): void { event.preventDefault(); event.stopPropagation(); this.dropdownOpen = !this.dropdownOpen; }
     logout(event: Event): void { event.preventDefault(); this.tokenService.logout(); this.router.navigate(['/login']).then(() => window.location.reload()); }
-
     onFilesSelected(event: Event): void {
         const input = event.target as HTMLInputElement;
         if (!input.files || input.files.length === 0) return;
@@ -226,7 +273,6 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
         }
         this.createImagePreviews();
     }
-
     async uploadImages(): Promise<string[]> {
         this.isUploading = true;
         Swal.fire({ title: 'Subiendo imágenes...', text: `0 de ${this.selectedFiles.length} completadas.`, allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
@@ -248,42 +294,6 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
         this.isUploading = false;
         return uploadedUrls;
     }
-
-    private async initializeMap(): Promise<void> {
-        try {
-            const mapContainer = document.getElementById('map');
-            if (!mapContainer) {
-                console.error('Contenedor del mapa no encontrado');
-                return;
-            }
-
-            const defaultCenter: [number, number] = [-75.6811, 4.5370];
-            const zoom = 13;
-
-            await this.mapService.initializeMap('map', defaultCenter, zoom);
-            console.log(' Mapa inicializado');
-
-            this.markerSub = this.mapService.addMarkerOnClick().subscribe({
-
-                next: (coords: any) => {
-
-                    this.selectedLocation = {
-                        latitude: coords.lat,
-                        longitude: coords.lng
-                    };
-
-                    this.editAccommodationForm.patchValue({
-                        latitude: this.selectedLocation.latitude,
-                        longitude: this.selectedLocation.longitude
-                    });
-                },
-                error: (err) => { console.error('Error al seleccionar ubicación:', err); }
-            });
-        } catch (error) {
-            console.error('Error al inicializar el mapa:', error);
-        }
-    }
-
     onServiceToggle(event: Event): void {
         const input = event.target as HTMLInputElement;
         const value = input.value;
@@ -294,9 +304,8 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
         }
         this.editAccommodationForm.get('services')?.setValue(this.services);
     }
-
     private createImagePreviews(): void {
-        this.imagePreviews = []; // Solo muestra las nuevas
+        this.imagePreviews = [];
         this.selectedFiles.forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = (e: ProgressEvent<FileReader>) => {
@@ -307,27 +316,24 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
             reader.readAsDataURL(file);
         });
     }
-
-    // (Añadido)
     getImagePreview(index: number): string {
         return this.imagePreviews[index];
     }
-
-    // (Añadido)
     removeExistingImage(index: number): void {
         this.existingImageUrls.splice(index, 1);
         this.editAccommodationForm.get('images')?.setValue(this.existingImageUrls);
     }
-
-    // (Añadido)
     removeNewImage(index: number): void {
         this.selectedFiles.splice(index, 1);
         this.imagePreviews.splice(index, 1);
     }
-
     ngOnDestroy(): void {
         this.markerSub?.unsubscribe();
-        this.mapService.destroyMap();
+        try {
+            this.mapService.destroyMap();
+        } catch (e) {
+            console.warn("Error al destruir el mapa, probablemente ya estaba inactivo.", e);
+        }
         this.imagePreviews = [];
         this.existingImageUrls = [];
     }

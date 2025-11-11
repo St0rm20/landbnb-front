@@ -4,7 +4,6 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import Swal from 'sweetalert2';
 import { filter } from 'rxjs/operators';
 
-// (El resto de tus imports)
 import { AccommodationService } from '../../services/accommodation-service.service';
 import { TokenService } from '../../services/token-service.service';
 import { UserService} from '../../services/user-service.service';
@@ -12,9 +11,10 @@ import { UserDto } from '../../models/user-dto.interface';
 import { AccommodationDTO } from '../../models/accommodation-dto.interface';
 import { ResponseDTO } from '../../models/response-dto.interface';
 
-interface PagedResponse {
+interface DirectPagedResponse {
     content: AccommodationDTO[];
     totalPages: number;
+    totalElements: number;
 }
 
 @Component({
@@ -81,41 +81,24 @@ export class HostPropertiesComponent implements OnInit {
 
     loadMyAccommodations(page: number): void {
         this.isLoading = true;
+
         this.accommodationService.getMyAccommodations(page).subscribe({
-            next: (data: any) => {
-                console.log('getMyAccommodations response', data); // inspeccionar estructura real
-                // Manejo robusto: data puede venir como { content: { content: [...], totalPages } }
-                // o como { content: [...] } o directamente como [...]
-                let items: AccommodationDTO[] = [];
-                let total = 1;
 
-                if (Array.isArray(data)) {
-                    items = data;
-                } else if (Array.isArray(data.content)) {
-                    // data.content es el arreglo directo
-                    items = data.content;
-                    total = data.totalPages ?? 1;
-                } else if (data.content && Array.isArray(data.content.content)) {
-                    // data.content.content es el arreglo (pagina con wrapper)
-                    items = data.content.content;
-                    total = data.content.totalPages ?? 1;
-                } else if (data?.content?.content?.length >= 0) {
-                    items = data.content.content;
-                    total = data.content.totalPages ?? 1;
-                } else {
-                    // fallback: intentar leer cualquier campo común
-                    items = data?.content ?? [];
-                }
 
-                this.properties = items;
-                this.totalPages = total;
+            next: (data: DirectPagedResponse | any) => {
+
+                this.properties = data?.content || [];
+                this.totalPages = data?.totalPages || 1;
+
                 this.isLoading = false;
+
+                console.log(` Alojamientos cargados: ${this.properties.length}`);
             },
             error: (err) => {
                 this.isLoading = false;
                 this.properties = [];
                 console.error('Error cargando alojamientos', err);
-                Swal.fire('Error', err?.error?.message || 'No se pudieron cargar tus alojamientos', 'error');
+                Swal.fire('Error', err.error.message || 'No se pudieron cargar tus alojamientos', 'error');
             }
         });
     }

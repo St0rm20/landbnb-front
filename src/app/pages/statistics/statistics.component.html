@@ -2,43 +2,57 @@
 
 <nav class="navbar">
     <div class="nav-container">
-        <a class="nav-brand" routerLink="/">
+        <a class="nav-brand" routerLink="/home">
             <img src="../../../assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
             <span class="brand-name">Landbnb</span>
         </a>
 
         <div class="nav-right">
+
+            <ng-container *ngIf="userRole === 'HOST'">
+                <a class="nav-link host-link" routerLink="/create-place">Crear Alojamiento</a>
+                <a class="nav-link host-link" routerLink="/host-properties">Mis Alojamientos</a>
+            </ng-container>
+
             <div class="dropdown">
+
                 <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
                     <i class="fas fa-bars"></i>
                 </a>
+
                 <div class="dropdown-menu" [class.show]="dropdownOpen">
-                    <h6 class="dropdown-header">Hola, Carlos Flórez</h6>
+
+                    <h6 class="dropdown-header">Hola, {{ userName || 'Usuario' }}</h6>
+
+                    <ng-container *ngIf="userRole === 'HOST'">
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" routerLink="/host-properties">
+                            <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
+                        </a>
+                        <a class="dropdown-item" routerLink="/reservations-host">
+                            <i class="fas fa-calendar-alt"></i>Reservas
+                        </a>
+                        <a class="dropdown-item" routerLink="/statistics">
+                            <i class="fas fa-chart-line"></i>Métricas
+                        </a>
+                    </ng-container>
+
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" routerLink="/anfitrion">
-                        <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
-                    </a>
-                    <a class="dropdown-item" routerLink="/reservas-anfitrion">
-                        <i class="fas fa-calendar-alt"></i>Reservas
-                    </a>
-                    <a class="dropdown-item" routerLink="/estadisticas">
-                        <i class="fas fa-chart-line"></i>Métricas
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" routerLink="/perfil">
+                    <a class="dropdown-item" routerLink="/profile-user">
                         <i class="fas fa-user-edit"></i>Editar Perfil
                     </a>
-                    <a class="dropdown-item" routerLink="/cambiar-contrasena">
+                    <a class="dropdown-item" routerLink="/change-password">
                         <i class="fas fa-key"></i>Cambiar Contraseña
                     </a>
+
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item logout" routerLink="/iniciar-sesion">
+                    <a class="dropdown-item logout" href="#" (click)="logout($event)">
                         <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
                     </a>
                 </div>
             </div>
 
-            <a routerLink="/perfil" class="profile-link">
+            <a routerLink="/profile-user" class="profile-link">
                 <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
             </a>
         </div>
@@ -51,9 +65,9 @@
             <div class="sidebar">
                 <h4 class="mb-4">Panel del Anfitrión</h4>
                 <div class="list-group">
-                    <a routerLink="/anfitrion" class="list-group-item list-group-item-action">Mis Alojamientos</a>
-                    <a routerLink="/reservas-anfitrion" class="list-group-item list-group-item-action">Reservas</a>
-                    <a routerLink="/estadisticas" class="list-group-item list-group-item-action active">Métricas</a>
+                    <a routerLink="/host-properties" class="list-group-item list-group-item-action">Mis Alojamientos</a>
+                    <a routerLink="/reservations-host" class="list-group-item list-group-item-action">Reservas</a>
+                    <a routerLink="/statistics" class="list-group-item list-group-item-action active">Métricas</a>
                 </div>
             </div>
         </div>
@@ -61,8 +75,8 @@
             <h1 class="mb-2 text-white">Métricas y Estadísticas</h1>
             <p class="lead text-white-50 mb-4">Resumen de rendimiento del último semestre</p>
 
-            <div class="row">
-                <div class="col-md-4" *ngFor="let metric of metrics">
+            <div *ngIf="metrics && !isLoadingMetrics" class="row">
+                <div class="col-md-4" *ngFor="let metric of displayMetrics">
                     <div class="metric-card">
                         <div class="icon"><i [class]="metric.icon"></i></div>
                         <div class="metric-info">
@@ -77,6 +91,16 @@
                 <h3 class="text-white mb-4">Ingresos por Mes</h3>
                 <canvas id="ingresosChart"></canvas>
             </div>
+
+            <div *ngIf="!metrics && !isLoadingMetrics && accommodations.length > 0" class="empty-state mt-4">
+                <i class="fas fa-chart-line"></i>
+                <h3>Selecciona un alojamiento para ver las métricas.</h3>
+            </div>
+            <div *ngIf="accommodations.length === 0 && !isLoadingMetrics" class="empty-state mt-4">
+                <i class="fas fa-home"></i>
+                <h3>No tienes alojamientos para generar métricas.</h3>
+            </div>
+
         </div>
     </div>
 </div>
