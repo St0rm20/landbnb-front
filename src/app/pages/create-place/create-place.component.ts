@@ -3,17 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
-import { MapService, LocationDTO } from '../../services/map-service';
+import { MapService, LocationDTO } from '../../services/map-service'; // (Tu servicio de mapa)
 import Swal from 'sweetalert2';
 
-// 1. --- IMPORTACIONES CORREGIDAS ---
+// 1. --- IMPORTAR LOS SERVICIOS Y DTOS REALES ---
 import { TokenService } from '../../services/token-service.service';
 import { UserService} from '../../services/user-service.service';
-import{UserDto } from '../../models/user-dto.interface';
+import { UserDto } from '../../models/user-dto.interface';
 import { ImageService } from '../../services/image-service';
 import { AccommodationService } from '../../services/accommodation-service.service';
-import { CreateAccommodationDTO } from '../../models/create-accommodation-dto.interface';
-
+import { CreateAccommodationDTO } from '../../models/create-accommodation-dto.interface'; // 👈 (Asumiendo que ya renombraste el archivo a .ts)
+import { ResponseDTO } from '../../models/response-dto.interface'; // 👈 (Asumiendo que ya renombraste el archivo a .ts)
 
 @Component({
     selector: 'app-create-place',
@@ -42,16 +42,13 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
     private markerSub?: Subscription;
     isUploading: boolean = false;
 
-    // --- Propiedades del Navbar ---
+    // --- PROPIEDADES DEL NAVBAR (¡AHORA SÍ ESTÁN!) ---
     dropdownOpen = false;
     isLoggedIn: boolean = false;
     userName: string = '';
     userEmail: string = '';
     userRole: string = '';
 
-    //
-    // --- 👇 CORRECCIÓN EN EL CONSTRUCTOR ---
-    //
     constructor(
         private fb: FormBuilder,
         private mapService: MapService,
@@ -60,8 +57,10 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
         private userService: UserService,
         private imageService: ImageService,
         private accommodationService: AccommodationService
-        // ❌ ELIMINADOS CityService y AccommodationServicesService
+        // ❌ (Servicios falsos eliminados)
     ) {
+
+        // --- Formulario Corregido ---
         this.createPlaceForm = this.fb.group({
             title: ['', [Validators.required, Validators.minLength(5)]],
             pricePerNight: [null, [Validators.required, Validators.min(1)]],
@@ -78,6 +77,7 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        // --- Cargar datos del Navbar ---
         this.isLoggedIn = this.tokenService.isLogged();
         if (this.isLoggedIn) {
             this.userEmail = this.tokenService.getEmail();
@@ -87,15 +87,14 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
             this.router.navigate(['/login']);
         }
 
-        // ❌ No necesitamos llamar a loadCities() o loadServices()
-        // porque las listas ya están definidas arriba.
+        // (Ya no necesitamos llamar a loadCities/loadServices)
     }
 
     ngAfterViewInit(): void {
         setTimeout(() => this.initializeMap(), 100);
     }
 
-    // --- MÉTODOS DEL NAVBAR ---
+    // --- MÉTODOS DEL NAVBAR (¡AHORA SÍ ESTÁN!) ---
     loadUserProfile(): void {
         this.userService.getProfile().subscribe({
             next: (data: UserDto) => { this.userName = data.name; },
@@ -171,6 +170,15 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
         this.createPlaceForm.markAllAsTouched();
 
         if (this.createPlaceForm.invalid) {
+            // Log para depurar por qué el botón está deshabilitado
+            console.log("Formulario Inválido. Revisando campos:");
+            Object.keys(this.createPlaceForm.controls).forEach(key => {
+                const control = this.createPlaceForm.get(key);
+                if (control?.invalid) {
+                    console.log(`❌ Campo [${key}] es inválido. Errores:`, control.errors);
+                }
+            });
+
             Swal.fire('Error', 'Por favor completa todos los campos requeridos', 'warning');
             return;
         }
