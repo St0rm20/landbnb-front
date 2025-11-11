@@ -3,17 +3,16 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
-import { MapService, LocationDTO } from '../../services/map-service'; // (Tu servicio de mapa)
+import { MapService, LocationDTO } from '../../services/map-service';
 import Swal from 'sweetalert2';
 
-// 1. --- IMPORTAR LOS SERVICIOS Y DTOS REALES ---
 import { TokenService } from '../../services/token-service.service';
 import { UserService} from '../../services/user-service.service';
 import { UserDto } from '../../models/user-dto.interface';
 import { ImageService } from '../../services/image-service';
 import { AccommodationService } from '../../services/accommodation-service.service';
-import { CreateAccommodationDTO } from '../../models/create-accommodation-dto.interface'; // 👈 (Asumiendo que ya renombraste el archivo a .ts)
-import { ResponseDTO } from '../../models/response-dto.interface'; // 👈 (Asumiendo que ya renombraste el archivo a .ts)
+import { CreateAccommodationDTO } from '../../models/create-accommodation-dto.interface';
+import { ResponseDTO } from '../../models/response-dto.interface';
 
 @Component({
     selector: 'app-create-place',
@@ -25,7 +24,6 @@ import { ResponseDTO } from '../../models/response-dto.interface'; // 👈 (Asum
 export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
     createPlaceForm: FormGroup;
 
-    // --- Listas de datos (Quemadas) ---
     citiesList = [
         'Armenia', 'Pereira', 'Manizales', 'Medellín', 'Bogotá', 'Cali', 'Cartagena',
         'Barranquilla', 'Bucaramanga', 'Cúcuta', 'Ibagué', 'Villavicencio',
@@ -34,7 +32,6 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
     ];
     servicesList = ['WiFi', 'Piscina', 'Cocina', 'Mascotas', 'Aire Acondicionado', 'Parking'];
 
-    // --- Lógica del formulario ---
     services: string[] = [];
     selectedFiles: File[] = [];
     imagePreviews: string[] = [];
@@ -42,7 +39,6 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
     private markerSub?: Subscription;
     isUploading: boolean = false;
 
-    // --- PROPIEDADES DEL NAVBAR (¡AHORA SÍ ESTÁN!) ---
     dropdownOpen = false;
     isLoggedIn: boolean = false;
     userName: string = '';
@@ -57,10 +53,8 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
         private userService: UserService,
         private imageService: ImageService,
         private accommodationService: AccommodationService
-        // ❌ (Servicios falsos eliminados)
     ) {
-
-        // --- Formulario Corregido ---
+        //  Latitude y Longitude SIN Validators.required
         this.createPlaceForm = this.fb.group({
             title: ['', [Validators.required, Validators.minLength(5)]],
             pricePerNight: [null, [Validators.required, Validators.min(1)]],
@@ -68,8 +62,8 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
             city: ['', Validators.required],
             address: ['', Validators.required],
             maxCapacity: [1, [Validators.required, Validators.min(1)]],
-            latitude: [null, Validators.required],
-            longitude: [null, Validators.required],
+            latitude: [null],  // SIN REQUIRED
+            longitude: [null], // SIN REQUIRED
             mainImage: [''],
             images: [[]],
             services: [[]]
@@ -77,7 +71,6 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        // --- Cargar datos del Navbar ---
         this.isLoggedIn = this.tokenService.isLogged();
         if (this.isLoggedIn) {
             this.userEmail = this.tokenService.getEmail();
@@ -86,26 +79,30 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
         } else {
             this.router.navigate(['/login']);
         }
-
-        // (Ya no necesitamos llamar a loadCities/loadServices)
     }
 
     ngAfterViewInit(): void {
         setTimeout(() => this.initializeMap(), 100);
     }
 
-    // --- MÉTODOS DEL NAVBAR (¡AHORA SÍ ESTÁN!) ---
     loadUserProfile(): void {
         this.userService.getProfile().subscribe({
-            next: (data: UserDto) => { this.userName = data.name; },
-            error: (error: any) => { console.error("Error cargando perfil", error); }
+            next: (data: UserDto) => {
+                this.userName = data.name;
+                console.log(' Usuario cargado:', data.name);
+            },
+            error: (error: any) => {
+                console.error("Error cargando perfil", error);
+            }
         });
     }
 
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
-        if (!target.closest('.dropdown')) { this.dropdownOpen = false; }
+        if (!target.closest('.dropdown')) {
+            this.dropdownOpen = false;
+        }
     }
 
     toggleDropdown(event: Event): void {
@@ -120,22 +117,35 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
         this.router.navigate(['/login']).then(() => window.location.reload());
     }
 
-    // --- LÓGICA DE SUBIDA Y CREACIÓN ---
-
     onFilesSelected(event: Event): void {
         const input = event.target as HTMLInputElement;
         if (!input.files || input.files.length === 0) return;
+
         this.selectedFiles = Array.from(input.files);
+
         if (this.selectedFiles.length > 10) {
             Swal.fire('Error', 'Máximo 10 imágenes permitidas.', 'warning');
             this.selectedFiles = [];
+            input.value = '';
             return;
         }
+
+        // Validar que todas sean imágenes
+        const validFiles = this.selectedFiles.filter(f => f.type.startsWith('image/'));
+        if (validFiles.length !== this.selectedFiles.length) {
+            Swal.fire(' Error', 'Solo se permiten archivos de imagen', 'warning');
+            this.selectedFiles = [];
+            input.value = '';
+            return;
+        }
+
+        console.log(` ${this.selectedFiles.length} imagen(es) seleccionada(s)`);
         this.createImagePreviews();
     }
 
     async uploadImages(): Promise<string[]> {
         this.isUploading = true;
+
         Swal.fire({
             title: 'Subiendo imágenes...',
             text: `0 de ${this.selectedFiles.length} completadas.`,
@@ -151,57 +161,87 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
                 const data = await firstValueFrom(this.imageService.upload(file));
                 uploadedUrls.push(data.content.url);
                 completed++;
+
                 Swal.update({
                     text: `${completed} de ${this.selectedFiles.length} completadas.`
                 });
+
+                console.log(` Imagen ${completed} subida:`, data.content.url);
             } catch (error) {
-                console.error("Error subiendo imagen:", error);
+                console.error(" Error subiendo imagen:", error);
                 this.isUploading = false;
-                Swal.fire('Error', 'No se pudo subir una de las imágenes', 'error');
+                Swal.fire(' Error', 'No se pudo subir una de las imágenes', 'error');
                 throw error;
             }
         }
 
         this.isUploading = false;
+        Swal.close();
         return uploadedUrls;
     }
 
     async onSubmit(): Promise<void> {
+        console.log('=== INICIANDO ENVÍO DEL FORMULARIO ===');
+
         this.createPlaceForm.markAllAsTouched();
 
-        if (this.createPlaceForm.invalid) {
-            // Log para depurar por qué el botón está deshabilitado
-            console.log("Formulario Inválido. Revisando campos:");
-            Object.keys(this.createPlaceForm.controls).forEach(key => {
-                const control = this.createPlaceForm.get(key);
-                if (control?.invalid) {
-                    console.log(`❌ Campo [${key}] es inválido. Errores:`, control.errors);
-                }
-            });
+        //  VALIDACIÓN MANUAL DE CAMPOS REQUERIDOS
+        const invalidFields: string[] = [];
 
-            Swal.fire('Error', 'Por favor completa todos los campos requeridos', 'warning');
-            return;
+        if (!this.createPlaceForm.value.title?.trim()) {
+            invalidFields.push('Título');
+        }
+        if (!this.createPlaceForm.value.description?.trim()) {
+            invalidFields.push('Descripción');
+        }
+        if (!this.createPlaceForm.value.city) {
+            invalidFields.push('Ciudad');
+        }
+        if (!this.createPlaceForm.value.address?.trim()) {
+            invalidFields.push('Dirección');
+        }
+        if (!this.createPlaceForm.value.pricePerNight || this.createPlaceForm.value.pricePerNight < 1) {
+            invalidFields.push('Precio por noche');
+        }
+        if (!this.createPlaceForm.value.maxCapacity || this.createPlaceForm.value.maxCapacity < 1) {
+            invalidFields.push('Capacidad máxima');
+        }
+        if (!this.selectedLocation || !this.selectedLocation.latitude || !this.selectedLocation.longitude) {
+            invalidFields.push('Ubicación en el mapa');
         }
         if (this.selectedFiles.length === 0) {
-            Swal.fire('Error', 'Debes subir al menos una imagen.', 'warning');
+            invalidFields.push('Al menos una imagen');
+        }
+
+        if (invalidFields.length > 0) {
+            console.log(' Campos faltantes:', invalidFields);
+            Swal.fire({
+                icon: 'warning',
+                title: ' Campos incompletos',
+                html: `Por favor completa los siguientes campos:<br><br><strong>${invalidFields.join('<br>')}</strong>`,
+                confirmButtonText: 'Entendido'
+            });
             return;
         }
 
+        //  SUBIR IMÁGENES
         let uploadedUrls: string[] = [];
         try {
             uploadedUrls = await this.uploadImages();
+            console.log(' Imágenes subidas:', uploadedUrls);
         } catch (error) {
+            console.error(' Error al subir imágenes');
             return;
         }
 
         const formValue = this.createPlaceForm.value;
         const dto: CreateAccommodationDTO = {
-            title: formValue.title,
-            description: formValue.description,
+            title: formValue.title.trim(),
+            description: formValue.description.trim(),
             city: formValue.city,
-            address: formValue.address,
-            latitude: formValue.latitude,
-            longitude: formValue.longitude,
+            address: formValue.address.trim(),
+            latitude: this.selectedLocation!.latitude,
+            longitude: this.selectedLocation!.longitude,
             pricePerNight: formValue.pricePerNight,
             maxCapacity: formValue.maxCapacity,
             services: this.services,
@@ -209,32 +249,59 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
             images: uploadedUrls
         };
 
+        console.log('DTO a enviar:', dto);
+
+        // ENVIAR AL BACKEND
         this.accommodationService.create(dto).subscribe({
             next: (data: any) => {
-                Swal.fire('¡Éxito!', 'Alojamiento creado correctamente', 'success');
-                this.router.navigate(['/host-properties']);
+                console.log('Respuesta del servidor:', data);
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: 'Alojamiento creado correctamente',
+                    confirmButtonText: 'Ver mis alojamientos'
+                }).then(() => {
+                    this.router.navigate(['/host-properties']);
+                });
             },
             error: (error) => {
-                Swal.fire('Error', error.error.content || 'No se pudo crear el alojamiento', 'error');
+                console.error('Error del servidor:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.error?.content || error.error?.message || 'No se pudo crear el alojamiento',
+                    confirmButtonText: 'Entendido'
+                });
             }
         });
     }
 
-    // --- MÉTODOS AUXILIARES ---
-
     private async initializeMap(): Promise<void> {
         try {
             const mapContainer = document.getElementById('map');
-            if (!mapContainer) { return; }
+            if (!mapContainer) {
+                console.error('Contenedor del mapa no encontrado');
+                return;
+            }
+
             const defaultCenter: [number, number] = [-75.6811, 4.5370];
             const zoom = 13;
+
             await this.mapService.initializeMap('map', defaultCenter, zoom);
+            console.log(' Mapa inicializado');
+
             this.markerSub = this.mapService.addMarkerOnClick().subscribe({
-                next: (coords) => {
-                    this.selectedLocation = { latitude: coords.lat, longitude: coords.lng };
-                    this.createPlaceForm.patchValue({
+
+                next: (coords: any) => {
+
+                    this.selectedLocation = {
                         latitude: coords.lat,
                         longitude: coords.lng
+                    };
+
+                    this.createPlaceForm.patchValue({
+                        latitude: this.selectedLocation.latitude,
+                        longitude: this.selectedLocation.longitude
                     });
                 },
                 error: (err) => { console.error('Error al seleccionar ubicación:', err); }
@@ -247,12 +314,17 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
     onServiceToggle(event: Event): void {
         const input = event.target as HTMLInputElement;
         const value = input.value;
+
         if (input.checked) {
-            if (!this.services.includes(value)) this.services.push(value);
+            if (!this.services.includes(value)) {
+                this.services.push(value);
+            }
         } else {
             this.services = this.services.filter(s => s !== value);
         }
+
         this.createPlaceForm.get('services')?.setValue(this.services);
+        console.log('🔧 Servicios actualizados:', this.services);
     }
 
     private createImagePreviews(): void {
@@ -260,24 +332,40 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
         this.selectedFiles.forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = (e: ProgressEvent<FileReader>) => {
-                if (e.target?.result) this.imagePreviews[index] = e.target.result as string;
+                if (e.target?.result) {
+                    this.imagePreviews[index] = e.target.result as string;
+                }
             };
             reader.readAsDataURL(file);
         });
     }
 
     getImagePreview(index: number): string {
-        return this.imagePreviews[index] || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="120" viewBox="0 0 150 120"%3E%3Crect fill="%23ddd" width="150" height="120"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ECargando...%3C/text%3E%3C/svg%3E';
+        return this.imagePreviews[index] || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="120"%3E%3Crect fill="%23ddd" width="150" height="120"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle"%3ECargando...%3C/text%3E%3C/svg%3E';
     }
 
     removeImage(index: number): void {
+        console.log(`🗑️ Eliminando imagen ${index + 1}`);
         this.selectedFiles.splice(index, 1);
         this.imagePreviews.splice(index, 1);
-        this.createPlaceForm.get('images')?.setValue(this.selectedFiles.length > 0 ? this.selectedFiles : null);
+
         if (this.selectedFiles.length === 0) {
             const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-            if (fileInput) fileInput.value = '';
+            if (fileInput) {
+                fileInput.value = '';
+            }
         }
+
+        console.log(`📸 Imágenes restantes: ${this.selectedFiles.length}`);
+    }
+
+    // ✅ GETTER PARA VERIFICAR SI EL FORMULARIO ESTÁ COMPLETO
+    get isFormValid(): boolean {
+        const hasBasicFields = this.createPlaceForm.valid;
+        const hasLocation = !!this.selectedLocation;
+        const hasImages = this.selectedFiles.length > 0;
+
+        return hasBasicFields && hasLocation && hasImages && !this.isUploading;
     }
 
     ngOnDestroy(): void {

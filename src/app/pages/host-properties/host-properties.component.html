@@ -127,7 +127,6 @@
                         <th scope="col">Título</th>
                         <th scope="col">Ciudad</th>
                         <th scope="col">Precio/Noche</th>
-                        <th scope="col">Estado</th>
                         <th scope="col">Acciones</th>
                     </tr>
                     </thead>
@@ -158,6 +157,14 @@
             </div>
 
             <div *ngIf="!isLoading && properties.length > 0" class="stats-section">
+
+                <div class="stat-card">
+                    <i class="fas fa-eye"></i>
+                    <div class="stat-info">
+                        <h3>{{ getTotalViews() }}</h3>
+                        <p>Reservas totales</p>
+                    </div>
+                </div>
                 <div class="stat-card">
                     <i class="fas fa-star"></i>
                     <div class="stat-info">

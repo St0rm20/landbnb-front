@@ -14,7 +14,7 @@ export class CityService {
      */
     public getAll(): Observable<ResponseDTO> {
 
-        // (Basado en tus ejemplos de .http)
+
         const hardcodedCities = [
             "Medellin",
             "Bogotá",

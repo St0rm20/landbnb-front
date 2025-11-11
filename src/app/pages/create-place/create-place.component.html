@@ -80,7 +80,7 @@
                 <form [formGroup]="createPlaceForm" (ngSubmit)="onSubmit()" class="mt-4" novalidate>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Título</label>
+                            <label class="form-label">Título (mínimo 5 caracteres) </label>
                             <input
                                     type="text"
                                     formControlName="title"
@@ -98,7 +98,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Descripción detallada</label>
+                        <label class="form-label">Descripción detallada (mínimo 20 caracteres)</label>
                         <textarea
                                 formControlName="description"
                                 class="form-control"
@@ -187,10 +187,23 @@
                     <button
                             type="submit"
                             class="btn btn-primary"
-                            [disabled]="createPlaceForm.invalid || isUploading">
-                        <span *ngIf="!isUploading">Guardar Alojamiento</span>
-                        <span *ngIf="isUploading">Subiendo...</span>
+                            [disabled]="!isFormValid">
+                            <span *ngIf="!isUploading">
+                                <i class="fas fa-save"></i>
+                                Guardar Alojamiento
+                            </span>
+                        <span *ngIf="isUploading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Subiendo imágenes...
+                        </span>
                     </button>
+
+                    <div *ngIf="!isFormValid && !isUploading" class="form-help-text mt-2">
+                        <small class="text-white-50">
+                            <i class="fas fa-info-circle"></i>
+                            Completa todos los campos, selecciona una ubicación en el mapa y agrega al menos una imagen
+                        </small>
+                    </div>
                 </form>
             </div>
         </div>

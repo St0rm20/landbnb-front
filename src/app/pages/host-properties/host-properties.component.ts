@@ -3,15 +3,15 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import Swal from 'sweetalert2';
 
-// Importar Servicios y DTOs
+// 1. Importar Servicios y DTOs
 import { AccommodationService } from '../../services/accommodation-service.service';
 import { TokenService } from '../../services/token-service.service';
-import { UserService } from '../../services/user-service.service';
-import { UserDto } from '../../models/user-dto.interface';
+import { UserService} from '../../services/user-service.service';
+import {UserDto } from '../../models/user-dto.interface'
 import { AccommodationDTO } from '../../models/accommodation-dto.interface';
 import { ResponseDTO } from '../../models/response-dto.interface';
 
-
+// Interfaz para la respuesta paginada
 interface PagedResponse {
     content: AccommodationDTO[];
     totalPages: number;
@@ -34,7 +34,7 @@ export class HostPropertiesComponent implements OnInit {
     userRole: string = '';
 
     // --- Lógica de la Página ---
-    properties: AccommodationDTO[] = [];
+    properties: AccommodationDTO[] = []; // 👈 Inicializado (¡Esto está bien!)
     isLoading: boolean = true;
     page: number = 0;
     totalPages: number = 1;
@@ -47,7 +47,6 @@ export class HostPropertiesComponent implements OnInit {
     ) {}
 
     ngOnInit(): void {
-        // Cargar datos del Navbar
         this.isLoggedIn = this.tokenService.isLogged();
         if (this.isLoggedIn) {
             this.userEmail = this.tokenService.getEmail();
@@ -55,58 +54,49 @@ export class HostPropertiesComponent implements OnInit {
             this.loadUserProfile();
         }
 
-        // Cargar alojamientos del anfitrión
         this.loadMyAccommodations(this.page);
     }
 
-    /**
-     * Carga el perfil del usuario para obtener el nombre
-     */
     loadUserProfile(): void {
         this.userService.getProfile().subscribe({
-            next: (data: UserDto) => {
-                this.userName = data.name;
-            },
-            error: (error: any) => {
-                console.error("Error cargando perfil del usuario", error);
-                this.userName = ''; // Si falla, el HTML usará el email
-            }
+            next: (data: UserDto) => { this.userName = data.name; },
+            error: (error: any) => { console.error("Error cargando perfil", error); }
         });
     }
 
-    /**
-     * Carga los alojamientos del anfitrión (Punto 10 del .http)
-     */
     loadMyAccommodations(page: number): void {
         this.isLoading = true;
         this.accommodationService.getMyAccommodations(page).subscribe({
             next: (data: ResponseDTO) => {
                 const response = data.content as PagedResponse;
-                this.properties = response.content;
-                this.totalPages = response.totalPages;
+
+                //
+                // --- 👇 CORRECCIÓN (Error TS2339) ---
+                //
+                // Si 'response' o 'response.content' son nulos,
+                // asigna un array vacío [] para evitar el error.
+                this.properties = response?.content || [];
+                this.totalPages = response?.totalPages || 1;
                 this.isLoading = false;
+                // --- FIN DE LA CORRECCIÓN ---
             },
             error: (err) => {
                 this.isLoading = false;
+                // Si la API falla, también nos aseguramos de que 'properties' sea un array
+                this.properties = [];
                 Swal.fire('Error', err.error.message || 'No se pudieron cargar tus alojamientos', 'error');
             }
         });
     }
 
-    /**
-     * Navega a la página de edición
-     */
     editProperty(property: AccommodationDTO): void {
         this.router.navigate(['/edit-accommodation', property.id]);
     }
 
-    /**
-     * Borra un alojamiento (Punto 5 del .http)
-     */
     deleteProperty(property: AccommodationDTO): void {
         Swal.fire({
             title: '¿Estás seguro?',
-            text: `¿Deseas eliminar "${property.title}"?`,
+            text: `¿Deseas eliminar "${property.title}"? ¡No podrás revertir esto!`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#4a675f',
@@ -145,17 +135,19 @@ export class HostPropertiesComponent implements OnInit {
         this.router.navigate(['/login']).then(() => window.location.reload());
     }
 
-    // --- Funciones auxiliares---
+    // --- Funciones auxiliares (Adaptadas al DTO) ---
 
+
+    // (Usamos 'totalBookings' de tu DTO)
     getTotalViews(): number {
         return this.properties.reduce((sum, p) => sum + (p.totalBookings || 0), 0);
     }
 
-
+    // (Usamos 'averageRating' de tu DTO)
     getAverageRating(): string {
-        const activeProps = this.properties.filter(p => p.averageRating);
-        if (activeProps.length === 0) return '0.0';
-        const sum = activeProps.reduce((acc, p) => acc + (p.averageRating || 0), 0);
-        return (sum / activeProps.length).toFixed(1);
+        const ratedProps = this.properties.filter(p => p.averageRating);
+        if (ratedProps.length === 0) return '0.0';
+        const sum = ratedProps.reduce((acc, p) => acc + (p.averageRating || 0), 0);
+        return (sum / ratedProps.length).toFixed(1);
     }
 }
