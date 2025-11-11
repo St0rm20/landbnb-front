@@ -66,7 +66,7 @@ export class HomeComponent implements OnInit, AfterViewInit {
     isLoggedIn: boolean = false;
     userName: string = '';
     userEmail: string = '';
-    userRole: string = ''; // 👈 AÑADIDO: Para guardar el rol ('USER' o 'HOST')
+    userRole: string = '';
 
     constructor(
         private accommodationService: AccommodationService,
@@ -83,7 +83,7 @@ export class HomeComponent implements OnInit, AfterViewInit {
         this.isLoggedIn = this.tokenService.isLogged();
         if (this.isLoggedIn) {
             this.userEmail = this.tokenService.getEmail();
-            this.userRole = this.tokenService.getRole(); // 👈 AÑADIDO: Obtenemos el rol
+            this.userRole = this.tokenService.getRole();
             this.loadUserProfile();
         }
     }
