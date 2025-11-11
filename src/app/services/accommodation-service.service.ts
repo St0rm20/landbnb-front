@@ -48,14 +48,19 @@ export class AccommodationService {
 
     /**
      * (Punto 5) Delete Accommodation (HOST only)
+     *
+     * --- 👇 CORRECCIÓN AQUÍ ---
      */
-    public delete(id: number): Observable<ResponseDTO> {
-        return this.http.delete<ResponseDTO>(`${this.accommodationURL}/${id}`);
+    public delete(id: number): Observable<any> { // 1. Cambiado a Observable<any>
+
+        // 2. Añadido { responseType: 'text' }
+        // Le dice a Angular que espere un String, no un JSON.
+        return this.http.delete(`${this.accommodationURL}/${id}`, { responseType: 'text' });
     }
+    // --- FIN DE LA CORRECCIÓN ---
 
     /**
      * (Puntos 6, 7, 8, 9) Search Accommodations (Public)
-     * Este POST envía el DTO en el body y la página como param.
      */
     public search(page: number, dto: SearchAccommodationDTO): Observable<ResponseDTO> {
         const params = new HttpParams().set('page', page.toString());

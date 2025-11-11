@@ -1,12 +1,13 @@
 import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common'; // <-- CAMBIO 1: Importado DatePipe
-import { RouterModule } from '@angular/router';
+import {Router, RouterModule} from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { UserService } from '../../services/user-service.service';
 import { TokenService } from '../../services/token-service.service';
 import { UpdateProfileDTO } from '../../models/update-profile-dto.interface';
 import { UserDto } from '../../models/user-dto.interface';
 import Swal from 'sweetalert2';
+import {AccommodationService} from "../../services/accommodation-service.service";
 
 @Component({
     selector: 'app-profile-user',
@@ -32,7 +33,9 @@ export class ProfileUserComponent implements OnInit {
         private fb: FormBuilder,
         private userService: UserService,
         private tokenService: TokenService,
-        private datePipe: DatePipe // <-- CAMBIO 3: Inyectado DatePipe
+        private datePipe: DatePipe ,
+        private router: Router
+
     ) {
         this.perfilForm = this.createForm();
     }

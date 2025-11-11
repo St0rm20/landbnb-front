@@ -359,7 +359,7 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
         console.log(`📸 Imágenes restantes: ${this.selectedFiles.length}`);
     }
 
-    // ✅ GETTER PARA VERIFICAR SI EL FORMULARIO ESTÁ COMPLETO
+
     get isFormValid(): boolean {
         const hasBasicFields = this.createPlaceForm.valid;
         const hasLocation = !!this.selectedLocation;

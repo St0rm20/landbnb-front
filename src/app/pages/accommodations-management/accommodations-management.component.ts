@@ -1,199 +1,334 @@
-import { Component, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, AfterViewInit, OnDestroy, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
+import { Subscription, firstValueFrom } from 'rxjs';
 import { MapService, LocationDTO } from '../../services/map-service';
+import Swal from 'sweetalert2';
+
+// 1. --- IMPORTAR TODOS LOS SERVICIOS Y DTOS ---
+import { TokenService } from '../../services/token-service.service';
+import { UserService} from '../../services/user-service.service';
+import {UserDto}  from '../../models/user-dto.interface';
+import { ImageService } from '../../services/image-service';
+import { AccommodationService } from '../../services/accommodation-service.service';
+import { UpdateAccommodationDTO } from '../../models/update-accommodation-dto.interface';
+import { AccommodationDTO } from '../../models/accommodation-dto.interface';
+import { ResponseDTO } from '../../models/response-dto.interface';
 
 @Component({
-    selector: 'app-accommodations-management',
-    templateUrl: './accommodations-management.component.html',
-    styleUrls: ['./accommodations-management.component.css'],
+    selector: 'app-accommodations-management', // 👈 Selector
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, RouterModule]
+    imports: [CommonModule, ReactiveFormsModule, RouterModule],
+    templateUrl: './accommodations-management.component.html', // 👈 HTML
+    styleUrls: ['./accommodations-management.component.css'] // 👈 CSS
 })
-export class AccommodationManagementComponent implements AfterViewInit, OnDestroy {
+export class AccommodationsManagementComponent implements OnInit, AfterViewInit, OnDestroy {
 
-    AcommodationsManagmentForm: FormGroup;
+    editAccommodationForm: FormGroup; // 👈 Renombrado
 
+    // --- Listas de datos (Quemadas) ---
     citiesList = [
         'Armenia', 'Pereira', 'Manizales', 'Medellín', 'Bogotá', 'Cali', 'Cartagena',
         'Barranquilla', 'Bucaramanga', 'Cúcuta', 'Ibagué', 'Villavicencio',
-        'Santa Marta', 'Montería', 'Valledupar', 'Popayán', 'Sincelejo',
-        'Tunja', 'Riohacha', 'Quibdó'
+        'Santa Marta', 'Montería', 'Valledupar', 'Popayán', 'Sincelejo', 'Tunja',
+        'Riohacha', 'Quibdó'
     ];
-
     servicesList = ['WiFi', 'Piscina', 'Cocina', 'Mascotas', 'Aire Acondicionado', 'Parking'];
+
+    // --- Lógica del formulario ---
     services: string[] = [];
-    selectedFiles: File[] = [];
-    imagePreviews: string[] = [];
+    existingImageUrls: string[] = []; // 👈 Para imágenes que ya existen
+    selectedFiles: File[] = []; // 👈 Para imágenes NUEVAS
+    imagePreviews: string[] = []; // 👈 Para previews de imágenes NUEVAS
+
     selectedLocation: LocationDTO | null = null;
-    dropdownOpen = false;
     private markerSub?: Subscription;
+    isUploading: boolean = false;
+
+    accommodationId: number | null = null;
+    isLoading: boolean = true;
+
+    // --- Propiedades del Navbar ---
+    dropdownOpen = false;
+    isLoggedIn: boolean = false;
+    userName: string = '';
+    userEmail: string = '';
+    userRole: string = '';
 
     constructor(
         private fb: FormBuilder,
-        private mapService: MapService
+        private mapService: MapService,
+        private router: Router,
+        private route: ActivatedRoute, // 👈 Inyectado
+        private tokenService: TokenService,
+        private userService: UserService,
+        private imageService: ImageService,
+        private accommodationService: AccommodationService
     ) {
-        this.AcommodationsManagmentForm = this.fb.group({
+
+        // --- Formulario Corregido ---
+        this.editAccommodationForm = this.fb.group({
             title: ['', [Validators.required, Validators.minLength(5)]],
-            price: [null, [Validators.required, Validators.min(1)]],
+            pricePerNight: [null, [Validators.required, Validators.min(1)]],
             description: ['', [Validators.required, Validators.minLength(20)]],
             city: ['', Validators.required],
-            capacity: [1, [Validators.required, Validators.min(1)]],
-            images: [null],
-            services: [[]],
-            location: [null, Validators.required]
+            address: ['', Validators.required],
+            maxCapacity: [1, [Validators.required, Validators.min(1)]],
+            latitude: [null, Validators.required], // 👈 AHORA SÍ ES REQUERIDO
+            longitude: [null, Validators.required], // 👈 AHORA SÍ ES REQUERIDO
+            mainImage: [''],
+            images: [[]],
+            services: [[]]
         });
     }
 
+    ngOnInit(): void {
+        // --- Cargar datos del Navbar ---
+        this.isLoggedIn = this.tokenService.isLogged();
+        if (this.isLoggedIn) {
+            this.userEmail = this.tokenService.getEmail();
+            this.userRole = this.tokenService.getRole();
+            this.loadUserProfile();
+        } else {
+            this.router.navigate(['/login']);
+        }
+
+        // --- LÓGICA DE CARGA DE DATOS PARA EDITAR ---
+        const idParam = this.route.snapshot.paramMap.get('id');
+        if (idParam) {
+            this.accommodationId = +idParam;
+            this.loadAccommodationData(this.accommodationId);
+        } else {
+            Swal.fire('Error', 'No se encontró el ID del alojamiento', 'error');
+            this.router.navigate(['/host-properties']);
+        }
+    }
+
     ngAfterViewInit(): void {
-        setTimeout(() => this.initializeMap(), 100);
+        // (El mapa se inicializa DESPUÉS de cargar los datos)
+    }
+
+    /**
+     * Llama a la API para obtener los datos del alojamiento
+     */
+    loadAccommodationData(id: number): void {
+        this.accommodationService.getById(id).subscribe({
+            next: (data: ResponseDTO) => {
+                const acc = data.content as AccommodationDTO;
+
+                // Rellenamos el formulario
+                this.editAccommodationForm.patchValue({
+                    title: acc.title,
+                    description: acc.description,
+                    city: acc.city,
+                    address: acc.address,
+                    latitude: acc.latitude,
+                    longitude: acc.longitude,
+                    pricePerNight: acc.pricePerNight,
+                    maxCapacity: acc.maxCapacity,
+                    mainImage: acc.mainImage,
+                    images: acc.images,
+                    services: acc.services
+                });
+
+                this.services = acc.services || [];
+                this.existingImageUrls = acc.images || [];
+                this.selectedLocation = {
+                    latitude: acc.latitude,
+                    longitude: acc.longitude
+                };
+
+                this.initializeMap();
+                this.isLoading = false;
+            },
+            error: (err) => {
+                this.isLoading = false;
+                Swal.fire('Error', 'No se pudieron cargar los datos del alojamiento', 'error');
+                this.router.navigate(['/host-properties']);
+            }
+        });
+    }
+
+    /**
+     * Lógica de 'onSubmit' para ACTUALIZAR
+     */
+    async onSubmit(): Promise<void> {
+        this.editAccommodationForm.markAllAsTouched();
+
+        if (this.editAccommodationForm.invalid) {
+            // Log de depuración
+            console.log("Formulario Inválido. Revisando campos:");
+            Object.keys(this.editAccommodationForm.controls).forEach(key => {
+                const control = this.editAccommodationForm.get(key);
+                if (control?.invalid) {
+                    console.log(`❌ Campo [${key}] es inválido. Errores:`, control.errors);
+                }
+            });
+            Swal.fire('Error', 'Por favor completa todos los campos requeridos', 'warning');
+            return;
+        }
+
+        let newUploadedUrls: string[] = [];
+        if (this.selectedFiles.length > 0) {
+            try {
+                newUploadedUrls = await this.uploadImages();
+            } catch (error) {
+                return;
+            }
+        }
+
+        // Combinar imágenes viejas y nuevas
+        const allImages = [...this.existingImageUrls, ...newUploadedUrls];
+
+        const formValue = this.editAccommodationForm.value;
+        const dto: UpdateAccommodationDTO = {
+            title: formValue.title,
+            description: formValue.description,
+            city: formValue.city,
+            address: formValue.address,
+            latitude: formValue.latitude,
+            longitude: formValue.longitude,
+            pricePerNight: formValue.pricePerNight,
+            maxCapacity: formValue.maxCapacity,
+            services: this.services,
+            mainImage: allImages[0],
+            images: allImages
+        };
+
+        this.accommodationService.update(this.accommodationId!, dto).subscribe({
+            next: (data: any) => {
+                Swal.fire('¡Éxito!', 'Alojamiento actualizado correctamente', 'success');
+                this.router.navigate(['/host-properties']);
+            },
+            error: (error) => {
+                Swal.fire('Error', error.error.content || 'No se pudo actualizar el alojamiento', 'error');
+            }
+        });
+    }
+
+
+    // --- (Funciones del Navbar y Auxiliares) ---
+    loadUserProfile(): void { this.userService.getProfile().subscribe({ next: (data: UserDto) => { this.userName = data.name; }, error: (error: any) => { console.error("Error cargando perfil", error); } }); }
+    @HostListener('document:click', ['$event'])
+    onDocumentClick(event: MouseEvent): void { const target = event.target as HTMLElement; if (!target.closest('.dropdown')) { this.dropdownOpen = false; } }
+    toggleDropdown(event: Event): void { event.preventDefault(); event.stopPropagation(); this.dropdownOpen = !this.dropdownOpen; }
+    logout(event: Event): void { event.preventDefault(); this.tokenService.logout(); this.router.navigate(['/login']).then(() => window.location.reload()); }
+
+    onFilesSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        if (!input.files || input.files.length === 0) return;
+        this.selectedFiles = Array.from(input.files);
+        if (this.selectedFiles.length + this.existingImageUrls.length > 10) {
+            Swal.fire('Error', 'Máximo 10 imágenes permitidas en total.', 'warning');
+            this.selectedFiles = [];
+            return;
+        }
+        this.createImagePreviews();
+    }
+
+    async uploadImages(): Promise<string[]> {
+        this.isUploading = true;
+        Swal.fire({ title: 'Subiendo imágenes...', text: `0 de ${this.selectedFiles.length} completadas.`, allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        const uploadedUrls: string[] = [];
+        let completed = 0;
+        for (const file of this.selectedFiles) {
+            try {
+                const data = await firstValueFrom(this.imageService.upload(file));
+                uploadedUrls.push(data.content.url);
+                completed++;
+                Swal.update({ text: `${completed} de ${this.selectedFiles.length} completadas.` });
+            } catch (error) {
+                console.error("Error subiendo imagen:", error);
+                this.isUploading = false;
+                Swal.fire('Error', 'No se pudo subir una de las imágenes', 'error');
+                throw error;
+            }
+        }
+        this.isUploading = false;
+        return uploadedUrls;
     }
 
     private async initializeMap(): Promise<void> {
         try {
             const mapContainer = document.getElementById('map');
             if (!mapContainer) {
-                alert('Error: No se pudo encontrar el contenedor del mapa');
+                console.error('Contenedor del mapa no encontrado');
                 return;
             }
 
-            const defaultCenter: [number, number] = [-75.6811, 4.5370]; // Armenia
+            const defaultCenter: [number, number] = [-75.6811, 4.5370];
             const zoom = 13;
+
             await this.mapService.initializeMap('map', defaultCenter, zoom);
+            console.log(' Mapa inicializado');
 
             this.markerSub = this.mapService.addMarkerOnClick().subscribe({
-                next: (coords) => {
-                    this.selectedLocation = { latitude: coords.lat, longitude: coords.lng };
-                    this.AcommodationsManagmentForm.patchValue({ location: this.selectedLocation });
+
+                next: (coords: any) => {
+
+                    this.selectedLocation = {
+                        latitude: coords.lat,
+                        longitude: coords.lng
+                    };
+
+                    this.editAccommodationForm.patchValue({
+                        latitude: this.selectedLocation.latitude,
+                        longitude: this.selectedLocation.longitude
+                    });
                 },
-                error: (err) => {
-                    console.error('Error al seleccionar ubicación:', err);
-                    alert('Error al seleccionar ubicación en el mapa');
-                }
+                error: (err) => { console.error('Error al seleccionar ubicación:', err); }
             });
         } catch (error) {
             console.error('Error al inicializar el mapa:', error);
-            alert('Error al cargar el mapa. Por favor recarga la página.');
         }
-    }
-
-    toggleDropdown(event: Event): void {
-        event.preventDefault();
-        this.dropdownOpen = !this.dropdownOpen;
     }
 
     onServiceToggle(event: Event): void {
         const input = event.target as HTMLInputElement;
         const value = input.value;
-
         if (input.checked) {
             if (!this.services.includes(value)) this.services.push(value);
         } else {
             this.services = this.services.filter(s => s !== value);
         }
-
-        this.AcommodationsManagmentForm.get('services')?.setValue(this.services);
-    }
-
-    onFilesSelected(event: Event): void {
-        const input = event.target as HTMLInputElement;
-        if (!input.files || input.files.length === 0) return;
-
-        const files = Array.from(input.files);
-        if (files.length > 10) {
-            alert('Máximo 10 imágenes permitidas.');
-            input.value = '';
-            return;
-        }
-
-        const validFiles = files.filter(file => file.type.startsWith('image/'));
-        if (validFiles.length !== files.length) {
-            alert('Solo se permiten archivos de imagen.');
-            input.value = '';
-            return;
-        }
-
-        const maxSize = 5 * 1024 * 1024;
-        const oversizedFiles = validFiles.filter(file => file.size > maxSize);
-        if (oversizedFiles.length > 0) {
-            alert(`Algunas imágenes superan 5MB:\n${oversizedFiles.map(f => f.name).join('\n')}`);
-            input.value = '';
-            return;
-        }
-
-        this.selectedFiles = validFiles;
-        this.AcommodationsManagmentForm.get('images')?.setValue(this.selectedFiles);
-        this.createImagePreviews();
+        this.editAccommodationForm.get('services')?.setValue(this.services);
     }
 
     private createImagePreviews(): void {
-        this.imagePreviews = [];
+        this.imagePreviews = []; // Solo muestra las nuevas
         this.selectedFiles.forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = (e: ProgressEvent<FileReader>) => {
-                if (e.target?.result) this.imagePreviews[index] = e.target.result as string;
+                if (e.target?.result) {
+                    this.imagePreviews[index] = e.target.result as string;
+                }
             };
             reader.readAsDataURL(file);
         });
     }
 
+    // (Añadido)
     getImagePreview(index: number): string {
-        return this.imagePreviews[index] || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="150" height="120"><rect fill="%23ddd" width="150" height="120"/><text fill="%23999" x="50%" y="50%" text-anchor="middle" dominant-baseline="middle">Cargando...</text></svg>';
+        return this.imagePreviews[index];
     }
 
-    removeImage(index: number): void {
+    // (Añadido)
+    removeExistingImage(index: number): void {
+        this.existingImageUrls.splice(index, 1);
+        this.editAccommodationForm.get('images')?.setValue(this.existingImageUrls);
+    }
+
+    // (Añadido)
+    removeNewImage(index: number): void {
         this.selectedFiles.splice(index, 1);
         this.imagePreviews.splice(index, 1);
-        this.AcommodationsManagmentForm.get('images')?.setValue(this.selectedFiles.length > 0 ? this.selectedFiles : null);
-
-        if (this.selectedFiles.length === 0) {
-            const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-            if (fileInput) fileInput.value = '';
-        }
-    }
-
-    onSubmit(): void {
-        if (this.AcommodationsManagmentForm.invalid) {
-            this.AcommodationsManagmentForm.markAllAsTouched();
-            const invalidFields = Object.keys(this.AcommodationsManagmentForm.controls).filter(
-                key => this.AcommodationsManagmentForm.get(key)?.invalid
-            );
-            alert(`Por favor completa los siguientes campos: ${invalidFields.join(', ')}`);
-            return;
-        }
-
-        if (!this.selectedLocation) {
-            alert('Selecciona una ubicación en el mapa.');
-            return;
-        }
-
-        if (this.selectedFiles.length === 0) {
-            alert('Selecciona al menos una imagen.');
-            return;
-        }
-
-        const payload = {
-            title: this.AcommodationsManagmentForm.value.title,
-            price: this.AcommodationsManagmentForm.value.price,
-            description: this.AcommodationsManagmentForm.value.description,
-            city: this.AcommodationsManagmentForm.value.city,
-            capacity: this.AcommodationsManagmentForm.value.capacity,
-            services: this.services,
-            location: this.selectedLocation,
-            imageCount: this.selectedFiles.length,
-            imageNames: this.selectedFiles.map(f => f.name),
-            imageSizes: this.selectedFiles.map(f => `${(f.size / 1024).toFixed(2)} KB`)
-        };
-
-        console.log('Gestión de alojamiento guardada:', payload);
-        alert('Alojamiento gestionado exitosamente.');
     }
 
     ngOnDestroy(): void {
         this.markerSub?.unsubscribe();
         this.mapService.destroyMap();
         this.imagePreviews = [];
+        this.existingImageUrls = [];
     }
 }

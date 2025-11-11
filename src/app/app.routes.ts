@@ -23,7 +23,7 @@ export const routes: Routes = [
         path: 'accommodations-management',
         loadComponent: () =>
             import('./pages/accommodations-management/accommodations-management.component')
-                .then(m => m.AccommodationManagementComponent)
+                .then(m => m.AccommodationsManagementComponent)
     },
 
     {

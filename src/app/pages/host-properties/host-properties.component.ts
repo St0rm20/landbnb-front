@@ -1,17 +1,17 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import Swal from 'sweetalert2';
+import { filter } from 'rxjs/operators';
 
-// 1. Importar Servicios y DTOs
+// (El resto de tus imports)
 import { AccommodationService } from '../../services/accommodation-service.service';
 import { TokenService } from '../../services/token-service.service';
 import { UserService} from '../../services/user-service.service';
-import {UserDto } from '../../models/user-dto.interface'
+import { UserDto } from '../../models/user-dto.interface';
 import { AccommodationDTO } from '../../models/accommodation-dto.interface';
 import { ResponseDTO } from '../../models/response-dto.interface';
 
-// Interfaz para la respuesta paginada
 interface PagedResponse {
     content: AccommodationDTO[];
     totalPages: number;
@@ -26,15 +26,15 @@ interface PagedResponse {
 })
 export class HostPropertiesComponent implements OnInit {
 
-    // --- Lógica del Navbar ---
+    // ... (Propiedades del Navbar)
     dropdownOpen = false;
     isLoggedIn: boolean = false;
     userName: string = '';
     userEmail: string = '';
     userRole: string = '';
 
-    // --- Lógica de la Página ---
-    properties: AccommodationDTO[] = []; // 👈 Inicializado (¡Esto está bien!)
+    // ... (Propiedades de la Página)
+    properties: AccommodationDTO[] = [];
     isLoading: boolean = true;
     page: number = 0;
     totalPages: number = 1;
@@ -44,8 +44,20 @@ export class HostPropertiesComponent implements OnInit {
         private accommodationService: AccommodationService,
         private tokenService: TokenService,
         private userService: UserService
-    ) {}
+    ) {
 
+        this.router.events.pipe(
+            filter(event => event instanceof NavigationEnd)
+        ).subscribe((event: any) => {
+            // Si la URL es '/host-properties', recargamos
+            if (event.urlAfterRedirects === '/host-properties') {
+                this.loadMyAccommodations(0);
+            }
+        });
+    }
+
+    // typescript
+// Reemplaza ngOnInit y loadMyAccommodations por este código
     ngOnInit(): void {
         this.isLoggedIn = this.tokenService.isLogged();
         if (this.isLoggedIn) {
@@ -54,8 +66,60 @@ export class HostPropertiesComponent implements OnInit {
             this.loadUserProfile();
         }
 
+        // Asegurar carga inicial
         this.loadMyAccommodations(this.page);
+
+        // Mantener el listener por si vuelves desde otra ruta
+        this.router.events.pipe(
+            filter(event => event instanceof NavigationEnd)
+        ).subscribe((event: any) => {
+            if (event.urlAfterRedirects === '/host-properties') {
+                this.loadMyAccommodations(0);
+            }
+        });
     }
+
+    loadMyAccommodations(page: number): void {
+        this.isLoading = true;
+        this.accommodationService.getMyAccommodations(page).subscribe({
+            next: (data: any) => {
+                console.log('getMyAccommodations response', data); // inspeccionar estructura real
+                // Manejo robusto: data puede venir como { content: { content: [...], totalPages } }
+                // o como { content: [...] } o directamente como [...]
+                let items: AccommodationDTO[] = [];
+                let total = 1;
+
+                if (Array.isArray(data)) {
+                    items = data;
+                } else if (Array.isArray(data.content)) {
+                    // data.content es el arreglo directo
+                    items = data.content;
+                    total = data.totalPages ?? 1;
+                } else if (data.content && Array.isArray(data.content.content)) {
+                    // data.content.content es el arreglo (pagina con wrapper)
+                    items = data.content.content;
+                    total = data.content.totalPages ?? 1;
+                } else if (data?.content?.content?.length >= 0) {
+                    items = data.content.content;
+                    total = data.content.totalPages ?? 1;
+                } else {
+                    // fallback: intentar leer cualquier campo común
+                    items = data?.content ?? [];
+                }
+
+                this.properties = items;
+                this.totalPages = total;
+                this.isLoading = false;
+            },
+            error: (err) => {
+                this.isLoading = false;
+                this.properties = [];
+                console.error('Error cargando alojamientos', err);
+                Swal.fire('Error', err?.error?.message || 'No se pudieron cargar tus alojamientos', 'error');
+            }
+        });
+    }
+
 
     loadUserProfile(): void {
         this.userService.getProfile().subscribe({
@@ -64,39 +128,14 @@ export class HostPropertiesComponent implements OnInit {
         });
     }
 
-    loadMyAccommodations(page: number): void {
-        this.isLoading = true;
-        this.accommodationService.getMyAccommodations(page).subscribe({
-            next: (data: ResponseDTO) => {
-                const response = data.content as PagedResponse;
-
-                //
-                // --- 👇 CORRECCIÓN (Error TS2339) ---
-                //
-                // Si 'response' o 'response.content' son nulos,
-                // asigna un array vacío [] para evitar el error.
-                this.properties = response?.content || [];
-                this.totalPages = response?.totalPages || 1;
-                this.isLoading = false;
-                // --- FIN DE LA CORRECCIÓN ---
-            },
-            error: (err) => {
-                this.isLoading = false;
-                // Si la API falla, también nos aseguramos de que 'properties' sea un array
-                this.properties = [];
-                Swal.fire('Error', err.error.message || 'No se pudieron cargar tus alojamientos', 'error');
-            }
-        });
-    }
-
     editProperty(property: AccommodationDTO): void {
-        this.router.navigate(['/edit-accommodation', property.id]);
+        this.router.navigate(['/accommodations-management', property.id]);
     }
 
     deleteProperty(property: AccommodationDTO): void {
         Swal.fire({
             title: '¿Estás seguro?',
-            text: `¿Deseas eliminar "${property.title}"? ¡No podrás revertir esto!`,
+            text: `¿Deseas eliminar "${property.title}"?`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#4a675f',
@@ -117,8 +156,6 @@ export class HostPropertiesComponent implements OnInit {
             }
         });
     }
-
-    // --- Lógica del Navbar ---
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
@@ -134,16 +171,9 @@ export class HostPropertiesComponent implements OnInit {
         this.tokenService.logout();
         this.router.navigate(['/login']).then(() => window.location.reload());
     }
-
-    // --- Funciones auxiliares (Adaptadas al DTO) ---
-
-
-    // (Usamos 'totalBookings' de tu DTO)
     getTotalViews(): number {
         return this.properties.reduce((sum, p) => sum + (p.totalBookings || 0), 0);
     }
-
-    // (Usamos 'averageRating' de tu DTO)
     getAverageRating(): string {
         const ratedProps = this.properties.filter(p => p.averageRating);
         if (ratedProps.length === 0) return '0.0';
