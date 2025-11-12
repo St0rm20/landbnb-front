@@ -5,7 +5,7 @@ import { RouterModule, Router } from '@angular/router';
 import Swal from 'sweetalert2';
 import { Chart, registerables } from 'chart.js';
 
-// Servicios y DTOs
+// Servicios y DTO
 import { AccommodationService } from '../../services/accommodation-service.service';
 import { TokenService } from '../../services/token-service.service';
 import { UserService } from '../../services/user-service.service';

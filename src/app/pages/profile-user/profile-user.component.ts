@@ -4,7 +4,7 @@ import { Router, RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { UserService } from '../../services/user-service.service';
 import { TokenService } from '../../services/token-service.service';
-import { ImageService } from '../../services/image-service';
+import { ImageService } from '../../services/image-service'; // Asegúrate de importar tu servicio
 import { UpdateProfileDTO } from '../../models/update-profile-dto.interface';
 import { UserDto } from '../../models/user-dto.interface';
 import Swal from 'sweetalert2';
@@ -55,8 +55,27 @@ export class ProfileUserComponent implements OnInit {
             phoneNumber: ['', [Validators.pattern(/^[+]?\d{7,15}$/)]],
             description: ['', [Validators.maxLength(500)]],
             bio: ['', [Validators.maxLength(500)]],
-            dateBirth: ['']
+            dateBirth: ['', [this.ageValidator.bind(this)]]
         });
+    }
+
+    // Validador personalizado para edad mínima de 18 años
+    ageValidator(control: any) {
+        if (!control.value) {
+            return null; // Si no hay valor, no validamos
+        }
+
+        const birthDate = new Date(control.value);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+
+        // Ajustar la edad si aún no ha cumplido años este año
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+
+        return age >= 18 ? null : { underAge: true };
     }
 
     loadUserProfile(): void {
@@ -70,13 +89,26 @@ export class ProfileUserComponent implements OnInit {
                     this.profilePicUrl = data.profilePictureUrl;
                 }
 
+                // Formatear la fecha antes de cargarla
+                // El backend puede enviar 'dateOfBirth' o 'dateBirth'
+                const birthDate = (data as any).dateOfBirth || data.dateBirth;
+                let formattedDate = '';
+
+                if (birthDate) {
+                    // La fecha viene como "2005-11-16" del backend
+                    formattedDate = birthDate.split('T')[0]; // Por si viene con hora
+                }
+
                 this.perfilForm.patchValue({
                     name: data.name || '',
                     lastName: data.lastName || '',
                     phoneNumber: data.phoneNumber || '',
                     bio: data.bio || '',
-                    dateBirth: data.dateBirth || ''
+                    dateBirth: formattedDate
                 });
+
+                console.log('Fecha cargada:', formattedDate);
+                console.log('Datos completos del usuario:', data);
 
                 this.isLoading = false;
             },
@@ -99,6 +131,16 @@ export class ProfileUserComponent implements OnInit {
 
     async guardarCambios(): Promise<void> {
         if (this.perfilForm.invalid) {
+            // Verificar si el error es por edad menor de 18
+            if (this.perfilForm.get('dateBirth')?.hasError('underAge')) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Edad no válida',
+                    text: 'Debes ser mayor de 18 años para usar esta plataforma'
+                });
+                return;
+            }
+
             Swal.fire({
                 icon: 'warning',
                 title: 'Formulario incompleto',
@@ -289,5 +331,27 @@ export class ProfileUserComponent implements OnInit {
 
     protected getProfilePicUrl() {
         return this.userData?.profilePictureUrl || this.profilePicUrl;
+    }
+
+    // Método para formatear la fecha para el input type="date"
+    private formatDateForInput(dateString: string): string {
+        if (!dateString) return '';
+
+        // Si ya viene en formato yyyy-MM-dd, devolverla tal cual
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+            return dateString;
+        }
+
+        // Si viene en otro formato, convertirla
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
+    }
+
+    protected getUserDateBirth() {
+        return this.userData?.dateBirth ? this.formatDateForInput(this.userData.dateBirth) : '';
     }
 }

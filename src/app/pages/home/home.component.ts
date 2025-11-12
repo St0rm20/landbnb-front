@@ -18,7 +18,7 @@ interface Filter {
     icon: string;
     active: boolean;
     type: string;
-    backendField: string; // 👈 NUEVO: campo que espera el backend
+    serviceName: string; // 👈 Nombre exacto del servicio que buscará
 }
 
 interface PagedResponse {
@@ -26,7 +26,6 @@ interface PagedResponse {
     totalPages: number;
 }
 
-// (Interfaz para el DTO simple que SÍ devuelve el backend en getAll)
 interface AccommodationSimpleDto {
     id: number;
     title: string;
@@ -70,15 +69,15 @@ export class HomeComponent implements OnInit, AfterViewInit {
     lastSearchDTO: SearchAccommodationDTO = {};
     numberOfGuests: number = 1;
 
-    // 👇 FILTROS ACTUALIZADOS - con los nombres EXACTOS que busca el backend
+    // 👇 FILTROS CON NOMBRES EXACTOS EN ESPAÑOL
     filters: Filter[] = [
-        { name: 'Favoritos', icon: 'fas fa-heart', active: false, type: 'favorites', backendField: '' },
-        { name: 'WiFi', icon: 'fas fa-wifi', active: false, type: 'WiFi', backendField: 'hasWifi' },
-        { name: 'Piscina', icon: 'fas fa-swimming-pool', active: false, type: 'Piscina', backendField: 'hasPool' },
-        { name: 'Mascotas', icon: 'fas fa-dog', active: false, type: 'Mascotas', backendField: 'allowsPets' },
-        { name: 'Aire Acon.', icon: 'fas fa-snowflake', active: false, type: 'Aire Acondicionado', backendField: 'hasAirConditioning' },
-        { name: 'Cocina', icon: 'fas fa-utensils', active: false, type: 'Cocina', backendField: 'hasKitchen' },
-        { name: 'Parking', icon: 'fas fa-parking', active: false, type: 'Parking', backendField: 'hasParking' }
+        { name: 'Favoritos', icon: 'fas fa-heart', active: false, type: 'favorites', serviceName: '' },
+        { name: 'WiFi', icon: 'fas fa-wifi', active: false, type: 'service', serviceName: 'WiFi' },
+        { name: 'Piscina', icon: 'fas fa-swimming-pool', active: false, type: 'service', serviceName: 'Piscina' },
+        { name: 'Mascotas', icon: 'fas fa-dog', active: false, type: 'service', serviceName: 'Mascotas' },
+        { name: 'Aire Acon.', icon: 'fas fa-snowflake', active: false, type: 'service', serviceName: 'Aire Acondicionado' },
+        { name: 'Cocina', icon: 'fas fa-utensils', active: false, type: 'service', serviceName: 'Cocina' },
+        { name: 'Parking', icon: 'fas fa-parking', active: false, type: 'service', serviceName: 'Parking' }
     ];
 
     properties: AccommodationDTO[] = [];
@@ -196,7 +195,7 @@ export class HomeComponent implements OnInit, AfterViewInit {
     }
 
     /**
-     * 👇 MÉTODO CORREGIDO - Ahora envía los booleanos correctos al backend
+     * 👇 BÚSQUEDA: Primero busca en el backend, luego filtra localmente por servicios en español
      */
     runSearch(page: number): void {
         this.validateDates();
@@ -208,7 +207,7 @@ export class HomeComponent implements OnInit, AfterViewInit {
         this.isSearchActive = true;
         this.isFavoritesActive = false;
 
-        // 👇 CONSTRUIR DTO CON LOS CAMPOS BOOLEANOS QUE ESPERA EL BACKEND
+        // Construir DTO básico sin servicios
         const searchDTO: any = {
             city: this.searchDestination || undefined,
             checkIn: this.checkinDate || undefined,
@@ -218,13 +217,6 @@ export class HomeComponent implements OnInit, AfterViewInit {
             numberOfGuests: this.numberOfGuests
         };
 
-        // 👇 AGREGAR LOS BOOLEANOS DE SERVICIOS AL DTO
-        this.filters.forEach(filter => {
-            if (filter.backendField && filter.backendField !== '') {
-                searchDTO[filter.backendField] = filter.active ? true : undefined;
-            }
-        });
-
         this.lastSearchDTO = searchDTO;
 
         console.log('DTO de búsqueda enviado al backend:', searchDTO);
@@ -233,11 +225,29 @@ export class HomeComponent implements OnInit, AfterViewInit {
             next: (data: any) => {
                 console.log('Respuesta de búsqueda:', data);
                 this.properties = data?.content || [];
-                this.filteredProperties = this.properties;
+
+                // 👇 FILTRADO LOCAL POR SERVICIOS EN ESPAÑOL
+                const activeServices = this.filters
+                    .filter(f => f.type === 'service' && f.active && f.serviceName)
+                    .map(f => f.serviceName);
+
+                if (activeServices.length > 0) {
+                    console.log('Filtrando por servicios:', activeServices);
+                    this.filteredProperties = this.properties.filter(property => {
+                        // Verificar que el alojamiento tenga TODOS los servicios seleccionados
+                        return activeServices.every(service =>
+                            property.services && property.services.includes(service)
+                        );
+                    });
+                    console.log('Resultados filtrados:', this.filteredProperties.length);
+                } else {
+                    this.filteredProperties = this.properties;
+                }
+
                 this.totalPages = data?.totalPages || 1;
                 this.currentPage = page + 1;
 
-                if (this.properties.length === 0) {
+                if (this.filteredProperties.length === 0) {
                     Swal.fire({
                         icon: 'info',
                         title: 'Sin resultados',
@@ -329,7 +339,6 @@ export class HomeComponent implements OnInit, AfterViewInit {
         }
     }
 
-    // Método para limpiar todos los filtros
     clearAllFilters(): void {
         this.filters.forEach(filter => {
             filter.active = false;
@@ -346,12 +355,11 @@ export class HomeComponent implements OnInit, AfterViewInit {
         this.loadInitialAccommodations(0);
     }
 
-    // Método para verificar si hay filtros activos
     get activeFiltersCount(): number {
         return this.filters.filter(f => f.active && f.type !== 'favorites').length;
     }
 
-    // --- MÉTODOS AUXILIARES (Sin cambios) ---
+    // --- MÉTODOS AUXILIARES ---
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;

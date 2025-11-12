@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
-// Asumo que tu MapService emite { lat, lng }
 import { MapService, LocationDTO } from '../../services/map-service';
 import Swal from 'sweetalert2';
 
@@ -17,19 +16,17 @@ import { UpdateAccommodationDTO } from '../../models/update-accommodation-dto.in
 import { AccommodationDTO } from '../../models/accommodation-dto.interface';
 import { ResponseDTO } from '../../models/response-dto.interface';
 
-// Interfaz LngLat para el tipo emitido por el mapa (si tu MapService no la exporta)
 interface LngLat {
     lat: number;
     lng: number;
 }
-// Interfaz MarkerDTO (Asumimos que está importada o definida en tu proyecto)
+
 interface MarkerDTO {
     id: number;
     location: LocationDTO;
     title: string;
     photoUrl: string;
 }
-
 
 @Component({
     selector: 'app-accommodations-management',
@@ -78,7 +75,6 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
         private imageService: ImageService,
         private accommodationService: AccommodationService
     ) {
-
         this.editAccommodationForm = this.fb.group({
             title: ['', [Validators.required, Validators.minLength(5)]],
             pricePerNight: [null, [Validators.required, Validators.min(1)]],
@@ -102,11 +98,20 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
             this.loadUserProfile();
         } else {
             this.router.navigate(['/login']);
+            return;
         }
 
+        // Obtener el ID de la ruta
         const idParam = this.route.snapshot.paramMap.get('id');
+        console.log('ID del parámetro de ruta:', idParam);
+
         if (idParam) {
             this.accommodationId = +idParam;
+            if (isNaN(this.accommodationId) || this.accommodationId <= 0) {
+                Swal.fire('Error', 'ID de alojamiento no válido', 'error');
+                this.router.navigate(['/host-properties']);
+                return;
+            }
             this.loadAccommodationData(this.accommodationId);
         } else {
             Swal.fire('Error', 'No se encontró el ID del alojamiento', 'error');
@@ -117,61 +122,112 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
     ngAfterViewInit(): void {}
 
     /**
-     * Llama a la API para obtener los datos del alojamiento
+     * Carga los datos del alojamiento desde el backend
      */
     loadAccommodationData(id: number): void {
         this.isLoading = true;
-        this.accommodationService.getById(id).subscribe({
-            next: (data: ResponseDTO) => {
-                const acc = data.content as AccommodationDTO;
 
-                if (!acc) {
+        console.log('Cargando datos del alojamiento con ID:', id);
+
+        this.accommodationService.getById(id).subscribe({
+            next: (response: any) => {
+                console.log('Respuesta completa del backend:', response);
+
+                // El backend puede devolver directamente el objeto o dentro de 'content'
+                let acc: AccommodationDTO;
+
+                if (response.content) {
+                    // Si viene dentro de content (formato ResponseDTO)
+                    acc = response.content as AccommodationDTO;
+                } else if (response.id) {
+                    // Si viene directamente el objeto
+                    acc = response as AccommodationDTO;
+                } else {
+                    console.error('Respuesta vacía o sin contenido válido');
                     this.isLoading = false;
-                    Swal.fire('Error', 'No se pudieron cargar los datos del alojamiento (contenido vacío).', 'error');
+                    Swal.fire('Error', 'No se pudieron cargar los datos del alojamiento (respuesta vacía).', 'error');
                     this.router.navigate(['/host-properties']);
                     return;
                 }
 
+                console.log('Datos del alojamiento:', acc);
+
+                // Validar que acc tenga las propiedades necesarias
+                if (!acc.id || !acc.title) {
+                    console.error('Datos del alojamiento incompletos:', acc);
+                    this.isLoading = false;
+                    Swal.fire('Error', 'Los datos del alojamiento están incompletos.', 'error');
+                    this.router.navigate(['/host-properties']);
+                    return;
+                }
+
+                // Cargar los datos en el formulario
                 this.editAccommodationForm.patchValue({
-                    title: acc.title,
-                    description: acc.description,
-                    city: acc.city,
-                    address: acc.address,
-                    latitude: acc.latitude,
-                    longitude: acc.longitude,
-                    pricePerNight: acc.pricePerNight,
-                    maxCapacity: acc.maxCapacity,
-                    mainImage: acc.mainImage,
-                    images: acc.images,
-                    services: acc.services
+                    title: acc.title || '',
+                    description: acc.description || '',
+                    city: acc.city || '',
+                    address: acc.address || '',
+                    latitude: acc.latitude || null,
+                    longitude: acc.longitude || null,
+                    pricePerNight: acc.pricePerNight || 0,
+                    maxCapacity: acc.maxCapacity || 1,
+                    mainImage: acc.mainImage || '',
+                    images: acc.images || [],
+                    services: acc.services || []
                 });
 
                 this.services = acc.services || [];
                 this.existingImageUrls = acc.images || [];
-                this.selectedLocation = {
-                    latitude: acc.latitude,
-                    longitude: acc.longitude
-                };
 
-                this.initializeMap(); // 👈 Llamada al mapa
+                if (acc.latitude && acc.longitude) {
+                    this.selectedLocation = {
+                        latitude: acc.latitude,
+                        longitude: acc.longitude
+                    };
+                }
+
+                console.log('Formulario actualizado:', this.editAccommodationForm.value);
+                console.log('Ubicación seleccionada:', this.selectedLocation);
+
+                // Inicializar el mapa después de cargar los datos
+                setTimeout(() => {
+                    this.initializeMap();
+                }, 100);
+
                 this.isLoading = false;
             },
             error: (err) => {
+                console.error('Error al cargar el alojamiento:', err);
                 this.isLoading = false;
-                Swal.fire('Error', 'No se pudieron cargar los datos del alojamiento', 'error');
+
+                let errorMessage = 'No se pudieron cargar los datos del alojamiento';
+                if (err.status === 404) {
+                    errorMessage = 'Alojamiento no encontrado';
+                } else if (err.status === 403) {
+                    errorMessage = 'No tienes permisos para editar este alojamiento';
+                } else if (err.error && err.error.content) {
+                    errorMessage = err.error.content;
+                }
+
+                Swal.fire('Error', errorMessage, 'error');
                 this.router.navigate(['/host-properties']);
             }
         });
     }
 
     /**
-     * Lógica de 'onSubmit' para ACTUALIZAR
+     * Envía los cambios al backend
      */
     async onSubmit(): Promise<void> {
         this.editAccommodationForm.markAllAsTouched();
 
         if (this.editAccommodationForm.invalid) {
             Swal.fire('Error', 'Por favor completa todos los campos requeridos', 'warning');
+            return;
+        }
+
+        if (!this.selectedLocation) {
+            Swal.fire('Error', 'Por favor selecciona una ubicación en el mapa', 'warning');
             return;
         }
 
@@ -185,6 +241,12 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
         }
 
         const allImages = [...this.existingImageUrls, ...newUploadedUrls];
+
+        if (allImages.length === 0) {
+            Swal.fire('Error', 'Debes tener al menos una imagen', 'warning');
+            return;
+        }
+
         const formValue = this.editAccommodationForm.value;
 
         const dto: UpdateAccommodationDTO = {
@@ -192,8 +254,8 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
             description: formValue.description,
             city: formValue.city,
             address: formValue.address,
-            latitude: formValue.latitude,
-            longitude: formValue.longitude,
+            latitude: this.selectedLocation.latitude,
+            longitude: this.selectedLocation.longitude,
             pricePerNight: formValue.pricePerNight,
             maxCapacity: formValue.maxCapacity,
             services: this.services,
@@ -201,23 +263,27 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
             images: allImages
         };
 
+        console.log('DTO a enviar:', dto);
+
         this.accommodationService.update(this.accommodationId!, dto).subscribe({
             next: (data: any) => {
                 Swal.fire('¡Éxito!', 'Alojamiento actualizado correctamente', 'success');
                 this.router.navigate(['/host-properties']);
             },
             error: (error) => {
+                console.error('Error al actualizar:', error);
                 Swal.fire('Error', error.error.content || 'No se pudo actualizar el alojamiento', 'error');
             }
         });
     }
 
-
-    // --- (Funciones del Navbar y Auxiliares) ---
     private async initializeMap(): Promise<void> {
         try {
             const mapContainer = document.getElementById('map');
-            if (!mapContainer) { return; }
+            if (!mapContainer) {
+                console.error('Contenedor del mapa no encontrado');
+                return;
+            }
 
             const center: [number, number] = this.selectedLocation
                 ? [this.selectedLocation.longitude, this.selectedLocation.latitude]
@@ -226,17 +292,15 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
             await this.mapService.initializeMap('map', center, 13);
 
             if (this.selectedLocation) {
-                // 1. CORRECCIÓN: Creamos el MarkerDTO temporal
                 const markerData: MarkerDTO = {
                     id: this.accommodationId || 0,
                     location: this.selectedLocation,
                     title: this.editAccommodationForm.value.title || 'Ubicación actual',
                     photoUrl: this.existingImageUrls[0] || 'default.jpg'
                 };
-                this.mapService.addMarker(markerData); // 👈 Pasamos el MarkerDTO completo
+                this.mapService.addMarker(markerData);
             }
 
-            // 2. Suscribirse a clics (Usa LngLat y convierte)
             this.markerSub = this.mapService.addMarkerOnClick().subscribe({
                 next: (coords: LngLat) => {
                     this.selectedLocation = {
@@ -256,28 +320,58 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
         }
     }
 
-    // (Omito el resto de funciones auxiliares por espacio, pero se mantienen igual)
-    loadUserProfile(): void { this.userService.getProfile().subscribe({ next: (data: UserDto) => { this.userName = data.name; }, error: (error: any) => { console.error("Error cargando perfil", error); } }); }
+    loadUserProfile(): void {
+        this.userService.getProfile().subscribe({
+            next: (data: UserDto) => { this.userName = data.name; },
+            error: (error: any) => { console.error("Error cargando perfil", error); }
+        });
+    }
+
     @HostListener('document:click', ['$event'])
-    onDocumentClick(event: MouseEvent): void { const target = event.target as HTMLElement; if (!target.closest('.dropdown')) { this.dropdownOpen = false; } }
-    toggleDropdown(event: Event): void { event.preventDefault(); event.stopPropagation(); this.dropdownOpen = !this.dropdownOpen; }
-    logout(event: Event): void { event.preventDefault(); this.tokenService.logout(); this.router.navigate(['/login']).then(() => window.location.reload()); }
+    onDocumentClick(event: MouseEvent): void {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.dropdown')) { this.dropdownOpen = false; }
+    }
+
+    toggleDropdown(event: Event): void {
+        event.preventDefault();
+        event.stopPropagation();
+        this.dropdownOpen = !this.dropdownOpen;
+    }
+
+    logout(event: Event): void {
+        event.preventDefault();
+        this.tokenService.logout();
+        this.router.navigate(['/login']).then(() => window.location.reload());
+    }
+
     onFilesSelected(event: Event): void {
         const input = event.target as HTMLInputElement;
         if (!input.files || input.files.length === 0) return;
+
         this.selectedFiles = Array.from(input.files);
+
         if (this.selectedFiles.length + this.existingImageUrls.length > 10) {
             Swal.fire('Error', 'Máximo 10 imágenes permitidas en total.', 'warning');
             this.selectedFiles = [];
             return;
         }
+
         this.createImagePreviews();
     }
+
     async uploadImages(): Promise<string[]> {
         this.isUploading = true;
-        Swal.fire({ title: 'Subiendo imágenes...', text: `0 de ${this.selectedFiles.length} completadas.`, allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        Swal.fire({
+            title: 'Subiendo imágenes...',
+            text: `0 de ${this.selectedFiles.length} completadas.`,
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
         const uploadedUrls: string[] = [];
         let completed = 0;
+
         for (const file of this.selectedFiles) {
             try {
                 const data = await firstValueFrom(this.imageService.upload(file));
@@ -291,9 +385,12 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
                 throw error;
             }
         }
+
         this.isUploading = false;
+        Swal.close();
         return uploadedUrls;
     }
+
     onServiceToggle(event: Event): void {
         const input = event.target as HTMLInputElement;
         const value = input.value;
@@ -304,6 +401,7 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
         }
         this.editAccommodationForm.get('services')?.setValue(this.services);
     }
+
     private createImagePreviews(): void {
         this.imagePreviews = [];
         this.selectedFiles.forEach((file, index) => {
@@ -316,17 +414,21 @@ export class AccommodationsManagementComponent implements OnInit, AfterViewInit,
             reader.readAsDataURL(file);
         });
     }
+
     getImagePreview(index: number): string {
         return this.imagePreviews[index];
     }
+
     removeExistingImage(index: number): void {
         this.existingImageUrls.splice(index, 1);
         this.editAccommodationForm.get('images')?.setValue(this.existingImageUrls);
     }
+
     removeNewImage(index: number): void {
         this.selectedFiles.splice(index, 1);
         this.imagePreviews.splice(index, 1);
     }
+
     ngOnDestroy(): void {
         this.markerSub?.unsubscribe();
         try {

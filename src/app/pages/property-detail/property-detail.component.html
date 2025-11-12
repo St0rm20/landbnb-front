@@ -3,56 +3,96 @@
 <!-- Navbar HTML -->
 <nav class="navbar">
     <div class="nav-container">
-        <a class="nav-brand" routerLink="/">
+        <a class="nav-brand" routerLink="/home">
             <img src="../../../assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
             <span class="brand-name">Landbnb</span>
         </a>
 
         <div class="nav-right">
-            <a class="nav-link host-link" routerLink="/crear-alojamiento">Conviértete en anfitrión</a>
-
-            <div class="dropdown">
-                <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
-                    <i class="fas fa-bars"></i>
+            <ng-container *ngIf="isLoggedIn">
+                <a *ngIf="userRole === 'USER'" class="nav-link host-link" routerLink="/become-host">
+                    Conviértete en anfitrión
                 </a>
-                <div class="dropdown-menu" [class.show]="dropdownOpen">
-                    <h6 class="dropdown-header">Hola, Carlos Flórez</h6>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" routerLink="/anfitrion"><i class="fas fa-tachometer-alt"></i>Panel de Anfitrión</a>
-                    <a class="dropdown-item" routerLink="/reservas-anfitrion"><i class="fas fa-calendar-alt"></i>Reservas</a>
-                    <a class="dropdown-item" routerLink="/estadisticas"><i class="fas fa-chart-line"></i>Métricas</a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" routerLink="/perfil"><i class="fas fa-user-edit"></i>Editar Perfil</a>
-                    <a class="dropdown-item" routerLink="/cambiar-contrasena"><i class="fas fa-key"></i>Cambiar Contraseña</a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item logout" routerLink="/iniciar-sesion"><i class="fas fa-sign-out-alt"></i>Cerrar Sesión</a>
-                </div>
-            </div>
 
-            <a routerLink="/perfil" class="profile-link">
-                <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
-            </a>
+                <a *ngIf="userRole === 'HOST'" class="nav-link host-link" routerLink="/create-place">
+                    Crear Alojamiento
+                </a>
+                <a *ngIf="userRole === 'HOST'" class="nav-link host-link" routerLink="/host-properties">
+                    Mis Alojamientos
+                </a>
+
+                <div class="dropdown">
+                    <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
+                        <i class="fas fa-bars"></i>
+                    </a>
+                    <div class="dropdown-menu" [class.show]="dropdownOpen">
+                        <h6 class="dropdown-header">Hola, {{ userName || userEmail }}</h6>
+
+                        <ng-container *ngIf="userRole === 'HOST'">
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" routerLink="/host-properties">
+                                <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
+                            </a>
+                            <a class="dropdown-item" routerLink="/reservations-host">
+                                <i class="fas fa-calendar-alt"></i>Reservas
+                            </a>
+                            <a class="dropdown-item" routerLink="/statistics">
+                                <i class="fas fa-chart-line"></i>Métricas
+                            </a>
+                        </ng-container>
+
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" routerLink="/profile-user">
+                            <i class="fas fa-user-edit"></i>Editar Perfil
+                        </a>
+                        <a class="dropdown-item" routerLink="/change-password">
+                            <i class="fas fa-key"></i>Cambiar Contraseña
+                        </a>
+                        <a class="dropdown-item" routerLink="/reservations-history">
+                            <i class="fas fa-calendar-check"></i>Mis Reservas
+                        </a>
+
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item logout" href="#" (click)="logout($event)">
+                            <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
+                        </a>
+                    </div>
+                </div>
+                <a routerLink="/profile-user" class="profile-link">
+                    <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
+                </a>
+            </ng-container>
+
+            <ng-container *ngIf="!isLoggedIn">
+                <a class="nav-link host-link" routerLink="/login">Conviértete en anfitrión</a>
+                <a class="nav-link host-link" routerLink="/login">Iniciar Sesión</a>
+                <a class="nav-link host-link" routerLink="/register">Regístrate</a>
+            </ng-container>
         </div>
     </div>
 </nav>
 
-<div class="container">
+<div class="container" *ngIf="property">
     <!-- Gallery Grid -->
     <div class="gallery-grid">
-        <div class="gallery-item-1">
-            <img src="assets/imagenes/hostal2.jpg.avif" alt="Imagen principal">
+        <div class="gallery-item-1" (click)="openImageModal(0)">
+            <img [src]="allImages[0] || 'assets/imagenes/hostal2.jpg.avif'" [alt]="property.title">
         </div>
-        <div class="gallery-item-2">
-            <img src="assets/imagenes/hostal5.jpeg.avif" alt="Imagen 2">
+        <div class="gallery-item-2" *ngIf="allImages[1]" (click)="openImageModal(1)">
+            <img [src]="allImages[1]" [alt]="property.title">
         </div>
-        <div class="gallery-item-3">
-            <img src="assets/imagenes/hostal3.jpg" alt="Imagen 3">
+        <div class="gallery-item-3" *ngIf="allImages[2]" (click)="openImageModal(2)">
+            <img [src]="allImages[2]" [alt]="property.title">
         </div>
-        <div class="gallery-item-4">
-            <img src="assets/imagenes/hostal4.jpg" alt="Imagen 4">
+        <div class="gallery-item-4" *ngIf="allImages[3]" (click)="openImageModal(3)">
+            <img [src]="allImages[3]" [alt]="property.title">
         </div>
-        <div class="gallery-item-5">
-            <img src="assets/imagenes/hostal6.jpg" alt="Imagen 5">
+        <div class="gallery-item-5" (click)="openImageModal(4)">
+            <img [src]="allImages[4] || 'assets/imagenes/hostal2.jpg.avif'" [alt]="property.title">
+            <div class="more-images-overlay" *ngIf="hasMoreImages()">
+                <i class="fas fa-images"></i>
+                <span>+{{ getRemainingImagesCount() }} fotos más</span>
+            </div>
         </div>
     </div>
 
@@ -62,58 +102,70 @@
         <div class="content-main">
             <div class="property-header">
                 <div class="property-title-section">
-                    <h1>Laureles - Apartaestudio Iluminado</h1>
+                    <h1>{{ property.title }}</h1>
                     <div class="property-rating">
                         <i class="fas fa-star"></i>
-                        <span>4.85 (25 reseñas)</span>
+                        <span>{{ property.averageRating || 'Nuevo' }}
+                            <ng-container *ngIf="property.totalBookings > 0">({{ property.totalBookings }} reseñas)</ng-container>
+                        </span>
                         <span>·</span>
-                        <a href="#" class="text-white">Medellín, Colombia</a>
+                        <a href="#map" class="text-white">{{ property.city }}, {{ property.address }}</a>
                     </div>
                 </div>
+
+                <!-- Botón de Favoritos -->
+                <button
+                        class="favorite-btn"
+                        (click)="toggleFavorite()"
+                        [disabled]="isLoadingFavorite"
+                        [class.is-favorite]="isFavorite">
+                    <i class="fas fa-heart" [class.filled]="isFavorite"></i>
+                    <span>{{ isFavorite ? 'En Favoritos' : 'Guardar' }}</span>
+                </button>
             </div>
 
             <div class="property-type">
                 <div class="property-features">
-                    <h2>Apartamento completo</h2>
-                    <p>4 huéspedes · 2 habitaciones · 2 camas · 1 baño</p>
+                    <h2>Alojamiento completo</h2>
+                    <p>{{ property.maxCapacity }} huéspedes</p>
                 </div>
-                <img src="assets/imagenes/perfil.png" alt="Anfitrión" class="host-avatar">
+                <img [src]="property.host.photoProfile || 'assets/imagenes/perfil.png'"
+                     [alt]="property.host.name"
+                     class="host-avatar">
             </div>
 
             <div class="section">
                 <h2>Descripción</h2>
-                <p>Este es un lugar acogedor, perfecto para familias o grupos de amigos. Cuenta con todas las comodidades que necesitas para una estadía inolvidable. Ubicado en el corazón de Laureles, tendrás acceso a los mejores restaurantes y parques de la ciudad a solo unos pasos.</p>
+                <p>{{ property.description }}</p>
             </div>
 
-            <div class="section">
+            <div class="section" *ngIf="property.services && property.services.length > 0">
                 <h2>Servicios del lugar</h2>
                 <div class="amenities-grid">
-                    <div class="amenity-item">
-                        <i class="fas fa-wifi"></i>
-                        <span>WiFi de alta velocidad</span>
-                    </div>
-                    <div class="amenity-item">
-                        <i class="fas fa-utensils"></i>
-                        <span>Cocina completa</span>
-                    </div>
-                    <div class="amenity-item">
-                        <i class="fas fa-snowflake"></i>
-                        <span>Aire acondicionado</span>
-                    </div>
-                    <div class="amenity-item">
-                        <i class="fas fa-parking"></i>
-                        <span>Parking gratuito</span>
+                    <div class="amenity-item" *ngFor="let service of property.services">
+                        <i class="fas"
+                           [ngClass]="{
+                               'fa-wifi': service === 'WiFi',
+                               'fa-utensils': service === 'Cocina',
+                               'fa-snowflake': service === 'Aire Acondicionado',
+                               'fa-parking': service === 'Parking',
+                               'fa-swimming-pool': service === 'Piscina',
+                               'fa-dog': service === 'Mascotas',
+                               'fa-check-circle': !['WiFi', 'Cocina', 'Aire Acondicionado', 'Parking', 'Piscina', 'Mascotas'].includes(service)
+                           }"></i>
+                        <span>{{ service }}</span>
                     </div>
                 </div>
             </div>
 
             <div class="section">
                 <h2>Ubicación</h2>
+                <p class="location-text">{{ property.address }}, {{ property.city }}</p>
                 <div id="map" class="map-container"></div>
             </div>
 
-            <div class="section">
-                <h2><i class="fas fa-star" style="color: #ffc107;"></i> 4.85 · 25 reseñas</h2>
+            <div class="section" *ngIf="property.averageRating > 0">
+                <h2><i class="fas fa-star" style="color: #ffc107;"></i> {{ property.averageRating }} · {{ property.totalBookings }} reseñas</h2>
                 <div class="reviews-grid">
                     <div class="review-card" *ngFor="let review of reviews">
                         <div class="review-header">
@@ -134,39 +186,86 @@
             <div class="reservation-card">
                 <h2>Reserva tu estadía</h2>
                 <div class="price-display">
-                    <div class="price-amount">$180.000 COP</div>
+                    <div class="price-amount">${{ property.pricePerNight | number:'1.0-0' }} COP</div>
                     <div class="price-period">por noche</div>
                 </div>
 
                 <form [formGroup]="reservationForm" (ngSubmit)="onReserve()">
-                    <div class="form-group">
-                        <label class="form-label">Llegada</label>
-                        <input type="date"
-                               class="form-control"
-                               formControlName="checkIn"
-                               [min]="minDate"
-                               (change)="onDateChange()">
+
+                    <!-- Calendario Interactivo -->
+                    <div class="calendar-container">
+                        <div class="calendar-header">
+                            <button type="button" class="calendar-nav-btn" (click)="previousMonth()">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <h3>{{ getMonthYearDisplay() }}</h3>
+                            <button type="button" class="calendar-nav-btn" (click)="nextMonth()">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+
+                        <div class="calendar-weekdays">
+                            <div class="weekday">Dom</div>
+                            <div class="weekday">Lun</div>
+                            <div class="weekday">Mar</div>
+                            <div class="weekday">Mié</div>
+                            <div class="weekday">Jue</div>
+                            <div class="weekday">Vie</div>
+                            <div class="weekday">Sáb</div>
+                        </div>
+
+                        <div class="calendar-days">
+                            <div
+                                    *ngFor="let day of calendarDays"
+                                    class="calendar-day"
+                                    [class.other-month]="!day.isCurrentMonth"
+                                    [class.disabled]="day.isDisabled"
+                                    [class.unavailable]="day.isUnavailable"
+                                    [class.selected]="day.isSelected"
+                                    [class.in-range]="day.isInRange"
+                                    (click)="onDateClick(day)">
+                                <span>{{ day.day }}</span>
+                                <span class="unavailable-indicator" *ngIf="day.isUnavailable"></span>
+                            </div>
+                        </div>
+
+                        <div class="calendar-legend">
+                            <div class="legend-item">
+                                <span class="legend-dot unavailable"></span>
+                                <span>No disponible</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot selected"></span>
+                                <span>Seleccionado</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">Salida</label>
-                        <input type="date"
-                               class="form-control"
-                               formControlName="checkOut"
-                               [min]="minCheckoutDate"
-                               (change)="onDateChange()">
+                    <!-- Fechas seleccionadas -->
+                    <div class="selected-dates" *ngIf="selectedCheckIn || selectedCheckOut">
+                        <div class="date-box">
+                            <label>Entrada</label>
+                            <div class="date-value">{{ selectedCheckIn || 'Selecciona' }}</div>
+                        </div>
+                        <div class="date-box">
+                            <label>Salida</label>
+                            <div class="date-value">{{ selectedCheckOut || 'Selecciona' }}</div>
+                        </div>
                     </div>
+
                     <div class="form-group">
                         <label class="form-label">Huéspedes</label>
                         <select class="form-select" formControlName="guests">
-                            <option value="1">1 huésped</option>
-                            <option value="2">2 huéspedes</option>
-                            <option value="3">3 huéspedes</option>
-                            <option value="4">4 huéspedes</option>
+                            <option *ngFor="let num of getGuestsArray()" [value]="num">
+                                {{ num }} {{ num === 1 ? 'huésped' : 'huéspedes' }}
+                            </option>
                         </select>
                     </div>
 
-                    <button type="submit" class="btn-primary" [disabled]="!reservationForm.valid">
+                    <button
+                            type="submit"
+                            class="btn-primary"
+                            [disabled]="!canReserve()">
                         Reservar ahora
                     </button>
 
@@ -174,21 +273,62 @@
                         No se te cobrará nada todavía
                     </p>
 
-                    <div class="price-breakdown">
+                    <div class="price-breakdown" *ngIf="nights > 0">
                         <div class="price-row">
-                            <span>$180.000 x 5 noches</span>
-                            <span>$900.000</span>
+                            <span>${{ property.pricePerNight | number:'1.0-0' }} x {{ nights }} {{ nights === 1 ? 'noche' : 'noches' }}</span>
+                            <span>${{ calculateSubtotal() | number:'1.0-0' }}</span>
                         </div>
                         <div class="price-row">
                             <span>Comisión por servicio</span>
-                            <span>$65.000</span>
+                            <span>${{ serviceFee | number:'1.0-0' }}</span>
                         </div>
                         <div class="price-total">
                             <span>Total</span>
-                            <span>$965.000</span>
+                            <span>${{ calculateTotal() | number:'1.0-0' }}</span>
                         </div>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading state -->
+<div class="loading-container" *ngIf="!property">
+    <i class="fas fa-spinner fa-spin fa-3x"></i>
+    <p>Cargando información del alojamiento...</p>
+</div>
+
+<!-- Modal de Galería de Imágenes -->
+<div class="image-modal" *ngIf="showImageModal" (click)="closeImageModal()">
+    <div class="image-modal-content" (click)="$event.stopPropagation()">
+        <button class="modal-close-btn" (click)="closeImageModal()">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <button class="modal-nav-btn modal-prev" (click)="previousImage()">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+
+        <div class="modal-image-container">
+            <img [src]="allImages[currentImageIndex]" [alt]="property?.title">
+            <div class="image-counter">
+                {{ currentImageIndex + 1 }} / {{ allImages.length }}
+            </div>
+        </div>
+
+        <button class="modal-nav-btn modal-next" (click)="nextImage()">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+
+        <!-- Thumbnails -->
+        <div class="modal-thumbnails">
+            <div
+                    *ngFor="let img of allImages; let i = index"
+                    class="modal-thumbnail"
+                    [class.active]="i === currentImageIndex"
+                    (click)="currentImageIndex = i">
+                <img [src]="img" [alt]="'Imagen ' + (i + 1)">
             </div>
         </div>
     </div>

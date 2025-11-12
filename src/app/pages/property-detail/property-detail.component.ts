@@ -1,29 +1,25 @@
 import { Component, OnInit, AfterViewInit, HostListener } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { RouterModule, ActivatedRoute } from '@angular/router';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { MapService } from '../../services/map-service';
-
-
-interface Property {
-    id: number;
-    title: string;
-    location: string;
-    price: number;
-    rating: number;
-    description: string;
-    guests: number;
-    bedrooms: number;
-    beds: number;
-    bathrooms: number;
-    amenities: string[];
-}
+import { AccommodationService } from '../../services/accommodation-service.service';
+import { BookingService, BookingRequest } from '../../services/booking.service';
+import { TokenService } from '../../services/token-service.service';
+import { UserService } from '../../services/user-service.service';
+import { AccommodationDetailDTO } from '../../models/accommodation-detail-dto';
+import Swal from 'sweetalert2';
 
 interface Review {
     user: string;
     date: string;
     comment: string;
     avatar: string;
+}
+
+interface UnavailableDate {
+    checkInDate: string;
+    checkOutDate: string;
 }
 
 @Component({
@@ -36,87 +32,231 @@ interface Review {
 export class PropertyDetailComponent implements OnInit, AfterViewInit {
     reservationForm: FormGroup;
     dropdownOpen = false;
+    accommodationId: number = 0;
+    property: AccommodationDetailDTO | null = null;
+    isFavorite: boolean = false;
+    isLoadingFavorite: boolean = false;
+    unavailableDates: UnavailableDate[] = [];
 
-    property: Property = {
-        id: 1,
-        title: 'Laureles - Apartaestudio Iluminado',
-        location: 'Medellín, Colombia',
-        price: 180000,
-        rating: 4.85,
-        description: 'Este es un lugar acogedor, perfecto para familias o grupos de amigos. Cuenta con todas las comodidades que necesitas para una estadía inolvidable. Ubicado en el corazón de Laureles, tendrás acceso a los mejores restaurantes y parques de la ciudad a solo unos pasos.',
-        guests: 4,
-        bedrooms: 2,
-        beds: 2,
-        bathrooms: 1,
-        amenities: ['wifi', 'kitchen', 'ac', 'parking']
-    };
+    // Fechas seleccionadas
+    selectedCheckIn: string | null = null;
+    selectedCheckOut: string | null = null;
 
-    reviews: Review[] = [
-        { user: 'Usuario A', date: 'Agosto 2025', comment: '¡Excelente lugar!', avatar: 'assets/imagenes/perfil.png' },
-        { user: 'Usuario B', date: 'Julio 2025', comment: 'El alojamiento es bueno.', avatar: 'assets/imagenes/perfil.png' }
-    ];
+    // Calendario
+    currentMonth: Date = new Date();
+    calendarDays: any[] = [];
+
+    isLoggedIn: boolean = false;
+    userName: string = '';
+    userEmail: string = '';
+    userRole: string = '';
+
+    reviews: Review[] = [];
 
     serviceFee = 65000;
-    nights = 1;
+    nights = 0;
 
-    // Fechas
     minDate: string = '';
-    minCheckoutDate: string = '';
-    dateError: string = '';
+
+    // Galería de imágenes
+    showImageModal: boolean = false;
+    currentImageIndex: number = 0;
+    allImages: string[] = [];
 
     constructor(
         private fb: FormBuilder,
         private route: ActivatedRoute,
-        private mapService: MapService
+        private router: Router,
+        private mapService: MapService,
+        private accommodationService: AccommodationService,
+        private bookingService: BookingService,
+        private tokenService: TokenService,
+        private userService: UserService
     ) {
         this.reservationForm = this.fb.group({
-            checkIn: ['', Validators.required],
-            checkOut: ['', Validators.required],
             guests: ['1', Validators.required]
         });
     }
 
-    // Inicializa la información base
     ngOnInit(): void {
+        this.isLoggedIn = this.tokenService.isLogged();
+        if (this.isLoggedIn) {
+            this.userEmail = this.tokenService.getEmail();
+            this.userRole = this.tokenService.getRole();
+            this.loadUserProfile();
+        }
+
         this.route.params.subscribe(params => {
-            const propertyId = params['id'];
-            console.log('Cargando propiedad:', propertyId);
+            this.accommodationId = +params['id'];
+            if (this.accommodationId) {
+                this.loadAccommodationDetails();
+                this.loadUnavailableDates();
+                if (this.isLoggedIn) {
+                    this.checkIfFavorite();
+                }
+            }
         });
 
         this.initializeDates();
+        this.generateCalendar();
     }
 
-    // Inicializa el mapa después de que el HTML se haya renderizado
     ngAfterViewInit(): void {
-        // Coordenadas de ejemplo (Medellín)
-        const propertyLocation: [number, number] = [-75.5795, 6.2442];
+        // El mapa se inicializará después de cargar los detalles
+    }
+
+    loadUserProfile(): void {
+        this.userService.getProfile().subscribe({
+            next: (data) => { this.userName = data.name; },
+            error: (error) => {
+                console.error("Error cargando perfil del usuario", error);
+                this.userName = '';
+            }
+        });
+    }
+
+    loadAccommodationDetails(): void {
+        this.accommodationService.getById(this.accommodationId).subscribe({
+            next: (data: AccommodationDetailDTO) => {
+                this.property = data;
+                console.log('Alojamiento cargado:', this.property);
+
+                // Preparar array de todas las imágenes
+                this.allImages = [];
+                if (this.property.mainImage) {
+                    this.allImages.push(this.property.mainImage);
+                }
+                if (this.property.images && this.property.images.length > 0) {
+                    this.allImages.push(...this.property.images.filter(img => img !== this.property?.mainImage));
+                }
+
+                // Actualizar el combo de huéspedes
+                this.updateGuestsOptions();
+
+                // Inicializar mapa
+                setTimeout(() => {
+                    if (this.property) {
+                        this.initializeMap();
+                    }
+                }, 100);
+            },
+            error: (error) => {
+                console.error('Error al cargar detalles:', error);
+                Swal.fire('Error', 'No se pudo cargar la información del alojamiento', 'error');
+            }
+        });
+    }
+
+    loadUnavailableDates(): void {
+        this.accommodationService.getUnavailableDates(this.accommodationId).subscribe({
+            next: (dates: UnavailableDate[]) => {
+                this.unavailableDates = dates;
+                console.log('Fechas no disponibles:', this.unavailableDates);
+                this.generateCalendar();
+            },
+            error: (error) => {
+                console.error('Error al cargar fechas no disponibles:', error);
+            }
+        });
+    }
+
+    checkIfFavorite(): void {
+        this.accommodationService.isFavorite(this.accommodationId).subscribe({
+            next: (result: boolean) => {
+                this.isFavorite = result;
+            },
+            error: (error) => {
+                console.error('Error al verificar favorito:', error);
+            }
+        });
+    }
+
+    toggleFavorite(): void {
+        if (!this.isLoggedIn) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Inicia sesión',
+                text: 'Debes iniciar sesión para agregar favoritos'
+            });
+            return;
+        }
+
+        this.isLoadingFavorite = true;
+
+        if (this.isFavorite) {
+            this.accommodationService.removeFavorite(this.accommodationId).subscribe({
+                next: (response) => {
+                    this.isFavorite = false;
+                    this.isLoadingFavorite = false;
+                    Swal.fire({
+                        icon: 'success',
+                        title: response.content || 'Eliminado de favoritos',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                },
+                error: (error) => {
+                    console.error('Error al eliminar favorito:', error);
+                    this.isLoadingFavorite = false;
+                    Swal.fire('Error', 'No se pudo eliminar de favoritos', 'error');
+                }
+            });
+        } else {
+            this.accommodationService.addFavorite(this.accommodationId).subscribe({
+                next: (response) => {
+                    this.isFavorite = true;
+                    this.isLoadingFavorite = false;
+                    Swal.fire({
+                        icon: 'success',
+                        title: response.content || 'Agregado a favoritos',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                },
+                error: (error) => {
+                    console.error('Error al agregar favorito:', error);
+                    this.isLoadingFavorite = false;
+                    Swal.fire('Error', 'No se pudo agregar a favoritos', 'error');
+                }
+            });
+        }
+    }
+
+    initializeMap(): void {
+        if (!this.property) return;
+
+        const propertyLocation: [number, number] = [
+            this.property.longitude,
+            this.property.latitude
+        ];
 
         this.mapService.initializeMap('map', propertyLocation, 14);
 
         this.mapService.addMarker({
             id: this.property.id,
             title: this.property.title,
-            photoUrl: 'assets/imagenes/departamento.jpg',
+            photoUrl: this.property.mainImage,
             location: {
-                latitude: propertyLocation[1],
-                longitude: propertyLocation[0]
+                latitude: this.property.latitude,
+                longitude: this.property.longitude
             }
         });
     }
 
-    /** ---------------- Fechas ---------------- */
+    updateGuestsOptions(): void {
+        if (!this.property) return;
+        // El HTML generará las opciones dinámicamente basándose en maxCapacity
+    }
+
+    getGuestsArray(): number[] {
+        if (!this.property) return [1];
+        return Array.from({ length: this.property.maxCapacity }, (_, i) => i + 1);
+    }
+
+    /** ---------------- CALENDARIO ---------------- */
     initializeDates(): void {
         const today = new Date();
         this.minDate = this.formatDate(today);
-        this.reservationForm.get('checkIn')?.setValue(this.minDate);
-
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        this.reservationForm.get('checkOut')?.setValue(this.formatDate(tomorrow));
-
-        this.updateMinCheckoutDate();
-        this.dateError = '';
-        this.updateNights();
     }
 
     formatDate(date: Date): string {
@@ -126,72 +266,237 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
         return `${year}-${month}-${day}`;
     }
 
-    onDateChange(): void {
-        this.validateDates();
-        this.updateNights();
+    generateCalendar(): void {
+        const year = this.currentMonth.getFullYear();
+        const month = this.currentMonth.getMonth();
+
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+
+        const startDate = new Date(firstDay);
+        startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+        this.calendarDays = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        for (let i = 0; i < 42; i++) {
+            const currentDate = new Date(startDate);
+            currentDate.setDate(startDate.getDate() + i);
+
+            const dateString = this.formatDate(currentDate);
+            const isPast = currentDate < today;
+            const isCurrentMonth = currentDate.getMonth() === month;
+            const isUnavailable = this.isDateUnavailable(dateString);
+            const isSelected = this.isDateSelected(dateString);
+            const isInRange = this.isDateInRange(dateString);
+
+            this.calendarDays.push({
+                date: currentDate,
+                dateString: dateString,
+                day: currentDate.getDate(),
+                isCurrentMonth: isCurrentMonth,
+                isPast: isPast,
+                isUnavailable: isUnavailable,
+                isSelected: isSelected,
+                isInRange: isInRange,
+                isDisabled: isPast || isUnavailable
+            });
+        }
     }
 
-    validateDates(): void {
-        this.dateError = '';
-        const checkIn = new Date(this.reservationForm.get('checkIn')?.value || '');
-        const checkOut = new Date(this.reservationForm.get('checkOut')?.value || '');
+    isDateUnavailable(dateString: string): boolean {
+        return this.unavailableDates.some(range => {
+            const checkIn = new Date(range.checkInDate);
+            const checkOut = new Date(range.checkOutDate);
+            const current = new Date(dateString);
 
-        if (checkOut < checkIn) {
-            this.dateError = 'La fecha de salida no puede ser anterior a la fecha de entrada';
-            return;
-        }
-
-        if (checkIn.getTime() === checkOut.getTime()) {
-            this.dateError = 'La estadía debe ser de al menos una noche';
-            return;
-        }
-
-        this.updateMinCheckoutDate();
+            return current >= checkIn && current <= checkOut;
+        });
     }
 
-    updateMinCheckoutDate(): void {
-        const checkInValue = this.reservationForm.get('checkIn')?.value;
-        if (checkInValue) {
-            const checkIn = new Date(checkInValue);
-            const minCheckout = new Date(checkIn);
-            minCheckout.setDate(minCheckout.getDate() + 1);
-            this.minCheckoutDate = this.formatDate(minCheckout);
+    isDateSelected(dateString: string): boolean {
+        return dateString === this.selectedCheckIn || dateString === this.selectedCheckOut;
+    }
 
-            const checkOutValue = this.reservationForm.get('checkOut')?.value;
-            if (checkOutValue && new Date(checkOutValue) <= checkIn) {
-                this.reservationForm.get('checkOut')?.setValue(this.minCheckoutDate);
+    isDateInRange(dateString: string): boolean {
+        if (!this.selectedCheckIn || !this.selectedCheckOut) return false;
+
+        const current = new Date(dateString);
+        const checkIn = new Date(this.selectedCheckIn);
+        const checkOut = new Date(this.selectedCheckOut);
+
+        return current > checkIn && current < checkOut;
+    }
+
+    onDateClick(day: any): void {
+        if (day.isDisabled) return;
+
+        if (!this.selectedCheckIn || (this.selectedCheckIn && this.selectedCheckOut)) {
+            // Primera selección o reiniciar
+            this.selectedCheckIn = day.dateString;
+            this.selectedCheckOut = null;
+        } else {
+            // Segunda selección
+            const checkIn = new Date(this.selectedCheckIn);
+            const selected = new Date(day.dateString);
+
+            if (selected > checkIn) {
+                // Verificar que no haya fechas no disponibles en el rango
+                if (!this.hasUnavailableDatesInRange(this.selectedCheckIn, day.dateString)) {
+                    this.selectedCheckOut = day.dateString;
+                    this.updateNights();
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Fechas no disponibles',
+                        text: 'Hay fechas reservadas en el rango seleccionado',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    this.selectedCheckIn = day.dateString;
+                    this.selectedCheckOut = null;
+                }
+            } else {
+                this.selectedCheckIn = day.dateString;
+                this.selectedCheckOut = null;
             }
         }
+
+        this.generateCalendar();
+    }
+
+    hasUnavailableDatesInRange(checkIn: string, checkOut: string): boolean {
+        const start = new Date(checkIn);
+        const end = new Date(checkOut);
+
+        return this.unavailableDates.some(range => {
+            const unavailStart = new Date(range.checkInDate);
+            const unavailEnd = new Date(range.checkOutDate);
+
+            return (unavailStart > start && unavailStart < end) ||
+                (unavailEnd > start && unavailEnd < end) ||
+                (unavailStart <= start && unavailEnd >= end);
+        });
+    }
+
+    previousMonth(): void {
+        this.currentMonth = new Date(
+            this.currentMonth.getFullYear(),
+            this.currentMonth.getMonth() - 1,
+            1
+        );
+        this.generateCalendar();
+    }
+
+    nextMonth(): void {
+        this.currentMonth = new Date(
+            this.currentMonth.getFullYear(),
+            this.currentMonth.getMonth() + 1,
+            1
+        );
+        this.generateCalendar();
+    }
+
+    getMonthYearDisplay(): string {
+        const months = [
+            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        ];
+        return `${months[this.currentMonth.getMonth()]} ${this.currentMonth.getFullYear()}`;
     }
 
     updateNights(): void {
-        const checkIn = new Date(this.reservationForm.get('checkIn')?.value || '');
-        const checkOut = new Date(this.reservationForm.get('checkOut')?.value || '');
+        if (!this.selectedCheckIn || !this.selectedCheckOut) {
+            this.nights = 0;
+            return;
+        }
+
+        const checkIn = new Date(this.selectedCheckIn);
+        const checkOut = new Date(this.selectedCheckOut);
         const diff = checkOut.getTime() - checkIn.getTime();
-        this.nights = Math.max(1, Math.ceil(diff / (1000 * 3600 * 24)));
+        this.nights = Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
     }
 
-    /** ---------------- Reservas ---------------- */
+    /** ---------------- RESERVAS ---------------- */
     calculateSubtotal(): number {
-        return this.property.price * this.nights;
+        if (!this.property) return 0;
+        return this.property.pricePerNight * this.nights;
     }
 
     calculateTotal(): number {
         return this.calculateSubtotal() + this.serviceFee;
     }
 
-    onReserve() {
-        if (this.reservationForm.valid && !this.dateError) {
-            console.log('Reservando:', this.reservationForm.value);
-            alert('¡Reserva realizada con éxito!');
-        } else {
-            alert(this.dateError || 'Por favor completa todos los campos requeridos.');
-        }
+    canReserve(): boolean {
+        return this.reservationForm.valid &&
+            this.selectedCheckIn !== null &&
+            this.selectedCheckOut !== null &&
+            this.nights > 0;
     }
 
-    /** ---------------- Dropdown ---------------- */
+    onReserve(): void {
+        if (!this.isLoggedIn) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Inicia sesión',
+                text: 'Debes iniciar sesión para realizar una reserva'
+            });
+            return;
+        }
+
+        if (!this.selectedCheckIn || !this.selectedCheckOut) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Selecciona las fechas',
+                text: 'Por favor selecciona las fechas de entrada y salida en el calendario'
+            });
+            return;
+        }
+
+        if (!this.canReserve()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Datos incompletos',
+                text: 'Por favor verifica que todos los datos sean correctos'
+            });
+            return;
+        }
+
+        const bookingRequest: BookingRequest = {
+            accommodationId: this.accommodationId,
+            checkIn: this.selectedCheckIn!,
+            checkOut: this.selectedCheckOut!,
+            numberOfGuests: parseInt(this.reservationForm.get('guests')?.value || '1')
+        };
+
+        Swal.fire({
+            title: 'Procesando reserva...',
+            text: 'Por favor espera',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        this.bookingService.createBooking(bookingRequest).subscribe({
+            next: (booking) => {
+                Swal.close();
+                console.log('Reserva creada:', booking);
+                // Navegar a la confirmación de reserva con el ID
+                this.router.navigate(['/reservations-confirm', booking.id]);
+            },
+            error: (error) => {
+                Swal.close();
+                console.error('Error al crear reserva:', error);
+                const errorMessage = error.error?.message || 'No se pudo completar la reserva';
+                Swal.fire('Error', errorMessage, 'error');
+            }
+        });
+    }
+
+    /** ---------------- DROPDOWN & AUTH ---------------- */
     toggleDropdown(event: Event): void {
         event.preventDefault();
+        event.stopPropagation();
         this.dropdownOpen = !this.dropdownOpen;
     }
 
@@ -203,7 +508,50 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
         }
     }
 
-    openImageModal(imageUrl: string) {
-        console.log('Abriendo imagen:', imageUrl);
+    logout(event: Event): void {
+        event.preventDefault();
+        this.tokenService.logout();
+        this.router.navigate(['/login']).then(() => window.location.reload());
+    }
+
+    /** ---------------- GALERÍA DE IMÁGENES ---------------- */
+    openImageModal(index: number): void {
+        this.currentImageIndex = index;
+        this.showImageModal = true;
+        document.body.style.overflow = 'hidden'; // Prevenir scroll del body
+    }
+
+    closeImageModal(): void {
+        this.showImageModal = false;
+        document.body.style.overflow = 'auto';
+    }
+
+    previousImage(): void {
+        if (this.currentImageIndex > 0) {
+            this.currentImageIndex--;
+        } else {
+            this.currentImageIndex = this.allImages.length - 1;
+        }
+    }
+
+    nextImage(): void {
+        if (this.currentImageIndex < this.allImages.length - 1) {
+            this.currentImageIndex++;
+        } else {
+            this.currentImageIndex = 0;
+        }
+    }
+
+    getThumbnailImages(): string[] {
+        // Retorna hasta 4 imágenes para mostrar en la galería
+        return this.allImages.slice(0, 5);
+    }
+
+    hasMoreImages(): boolean {
+        return this.allImages.length > 5;
+    }
+
+    getRemainingImagesCount(): number {
+        return Math.max(0, this.allImages.length - 5);
     }
 }
