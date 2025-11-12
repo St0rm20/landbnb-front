@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import Swal from 'sweetalert2';
 
-import { BookingService, BookingDto } from '../../services/booking.service';
+import { BookingService, BookingDto, PagedBookings } from '../../services/booking.service';
 import { TokenService } from '../../services/token-service.service';
 import { UserService } from '../../services/user-service.service';
 
@@ -26,13 +26,10 @@ export class ReservationsHostComponent implements OnInit {
     userRole: string = '';
 
     // Reservations Data
+    allReservations: BookingDto[] = [];
     activeReservations: BookingDto[] = [];
     pastReservations: BookingDto[] = [];
     canceledReservations: BookingDto[] = [];
-
-    // Pagination
-    currentPage = 0;
-    pageSize = 10;
 
     constructor(
         private bookingService: BookingService,
@@ -64,7 +61,7 @@ export class ReservationsHostComponent implements OnInit {
 
         this.userEmail = this.tokenService.getEmail();
         this.loadUserProfile();
-        this.loadBookings();
+        this.loadAllBookings();
     }
 
     // ===== CARGA DE DATOS =====
@@ -81,102 +78,117 @@ export class ReservationsHostComponent implements OnInit {
         });
     }
 
-    loadBookings(): void {
+    loadAllBookings(): void {
         this.isLoading = true;
 
-        // Cargar según el tab activo
-        switch (this.activeTab) {
-            case 'activas':
-                this.loadActiveBookings();
-                break;
-            case 'pasadas':
-                this.loadPastBookings();
-                break;
-            case 'canceladas':
-                this.loadCanceledBookings();
-                break;
-        }
-    }
+        // Obtener TODAS las reservas sin filtrar por estado
+        this.bookingService.getHostBookings().subscribe({
+            next: (response: PagedBookings | any) => {
+                console.log('Respuesta completa del servicio:', response);
 
-    loadActiveBookings(): void {
-        // Obtener reservas PENDING y CONFIRMED
-        this.bookingService.getHostBookings(undefined, 'CONFIRMED', this.currentPage, this.pageSize).subscribe({
-            next: (response) => {
-                this.activeReservations = response.content;
+                // Manejar diferentes estructuras de respuesta
+                if (response && Array.isArray(response)) {
+                    // Si la respuesta es directamente un array
+                    this.allReservations = response;
+                } else if (response && response.content && Array.isArray(response.content)) {
+                    // Si la respuesta tiene propiedad content (estructura paginada)
+                    this.allReservations = response.content;
+                } else if (response && Array.isArray(response)) {
+                    // Otra posible estructura
+                    this.allReservations = response;
+                } else {
+                    console.warn('Estructura de respuesta inesperada:', response);
+                    this.allReservations = [];
+                }
+
+                console.log('Reservas obtenidas:', this.allReservations.length, this.allReservations);
+                this.categorizeBookings();
                 this.isLoading = false;
             },
             error: (error) => {
-                console.error('Error cargando reservas activas:', error);
-                this.activeReservations = [];
+                console.error('Error cargando todas las reservas:', error);
+                this.allReservations = [];
                 this.isLoading = false;
-                this.showError('No se pudieron cargar las reservas activas');
+                this.showError('No se pudieron cargar las reservas');
             }
         });
     }
 
-    loadPastBookings(): void {
-        // Obtener reservas COMPLETED
-        this.bookingService.getHostBookings(undefined, 'COMPLETED', this.currentPage, this.pageSize).subscribe({
-            next: (response) => {
-                this.pastReservations = response.content;
-                this.isLoading = false;
-            },
-            error: (error) => {
-                console.error('Error cargando reservas pasadas:', error);
-                this.pastReservations = [];
-                this.isLoading = false;
-                this.showError('No se pudieron cargar las reservas pasadas');
-            }
-        });
-    }
+    categorizeBookings(): void {
+        const now = new Date();
 
-    loadCanceledBookings(): void {
-        // Obtener reservas CANCELLED
-        this.bookingService.getHostBookings(undefined, 'CANCELLED', this.currentPage, this.pageSize).subscribe({
-            next: (response) => {
-                this.canceledReservations = response.content;
-                this.isLoading = false;
-            },
-            error: (error) => {
-                console.error('Error cargando reservas canceladas:', error);
-                this.canceledReservations = [];
-                this.isLoading = false;
-                this.showError('No se pudieron cargar las reservas canceladas');
-            }
+        this.activeReservations = this.allReservations.filter(booking => {
+            const status = booking.status?.toUpperCase();
+            const checkOutDate = new Date(booking.checkOutDate);
+
+            // Reservas activas: CONFIRMED o PENDING con checkOutDate en el futuro
+            return (status === 'CONFIRMED' || status === 'PENDING') && checkOutDate >= now;
         });
+
+        this.pastReservations = this.allReservations.filter(booking => {
+            const status = booking.status?.toUpperCase();
+            const checkOutDate = new Date(booking.checkOutDate);
+
+            // Reservas pasadas: COMPLETED o CONFIRMED con checkOutDate en el pasado
+            return status === 'COMPLETED' ||
+                (status === 'CONFIRMED' && checkOutDate < now);
+        });
+
+        this.canceledReservations = this.allReservations.filter(booking => {
+            const status = booking.status?.toUpperCase();
+            return status === 'CANCELLED' || status === 'CANCELED';
+        });
+
+        console.log('Reservas activas:', this.activeReservations.length);
+        console.log('Reservas pasadas:', this.pastReservations.length);
+        console.log('Reservas canceladas:', this.canceledReservations.length);
     }
 
     // ===== ACCIONES =====
 
     setActiveTab(tab: 'activas' | 'pasadas' | 'canceladas'): void {
         this.activeTab = tab;
-        this.currentPage = 0;
-        this.loadBookings();
     }
 
     contactGuest(booking: BookingDto): void {
+        console.log('Datos del booking para contactar:', booking); // Para debugging
+
         const guestName = `${booking.user.name} ${booking.user.lastName}`;
-        const guestEmail = booking.user.email;
-        const guestPhone = booking.user.phoneNumber || 'No disponible';
+
+        // Verificar diferentes posibles ubicaciones del email
+        const guestEmail = booking.user.email ||
+            booking.user.email ||
+            (booking.user as any).emailAddress ||
+            'Email no disponible';
+
+        const guestPhone = booking.user.phoneNumber ||
+            booking.user.phoneNumber ||
+            (booking.user as any).phone ||
+            'No disponible';
 
         Swal.fire({
             icon: 'info',
             title: `Contactar a ${guestName}`,
             html: `
-                <div class="text-left">
-                    <p><strong>Email:</strong> <a href="mailto:${guestEmail}">${guestEmail}</a></p>
-                    <p><strong>Teléfono:</strong> ${guestPhone}</p>
-                    <p><strong>Alojamiento:</strong> ${booking.accommodation.title}</p>
-                    <p><strong>Fechas:</strong> ${this.formatDate(booking.checkInDate)} - ${this.formatDate(booking.checkOutDate)}</p>
-                </div>
-            `,
-            confirmButtonText: 'Cerrar'
+            <div class="text-left" style="color: #333;">
+                <p><strong>Email:</strong> 
+                    ${guestEmail !== 'Email no disponible' ?
+                `<a href="mailto:${guestEmail}" style="color: #007bff;">${guestEmail}</a>` :
+                'Email no disponible'}
+                </p>
+                <p><strong>Teléfono:</strong> ${guestPhone}</p>
+                <p><strong>Alojamiento:</strong> ${booking.accommodation.title}</p>
+                <p><strong>Fechas:</strong> ${this.formatDate(booking.checkInDate)} - ${this.formatDate(booking.checkOutDate)}</p>
+            </div>
+        `,
+            confirmButtonText: 'Cerrar',
+            customClass: {
+                popup: 'contact-popup'
+            }
         });
     }
 
     viewReview(booking: BookingDto): void {
-        // Por ahora mostramos la información de la reserva
-        // Más adelante puedes agregar un servicio de reviews
         Swal.fire({
             icon: 'info',
             title: 'Reserva Completada',
@@ -212,9 +224,11 @@ export class ReservationsHostComponent implements OnInit {
                             text: response.description,
                             timer: 2000
                         });
-                        this.loadBookings();
+                        // Recargar todas las reservas
+                        this.loadAllBookings();
                     },
                     error: (error) => {
+                        console.error('Error cancelando reserva:', error);
                         this.showError('No se pudo cancelar la reserva');
                     }
                 });
@@ -225,12 +239,16 @@ export class ReservationsHostComponent implements OnInit {
     // ===== UTILIDADES =====
 
     formatDate(dateString: string): string {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('es-CO', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-CO', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        } catch (error) {
+            return dateString;
+        }
     }
 
     formatNumber(value: number): string {
@@ -238,12 +256,14 @@ export class ReservationsHostComponent implements OnInit {
     }
 
     getStatusBadgeClass(status: string): string {
-        switch (status.toUpperCase()) {
+        const statusUpper = status?.toUpperCase();
+        switch (statusUpper) {
             case 'CONFIRMED':
                 return 'badge-success';
             case 'PENDING':
                 return 'badge-warning';
             case 'CANCELLED':
+            case 'CANCELED':
                 return 'badge-danger';
             case 'COMPLETED':
                 return 'badge-secondary';
@@ -253,22 +273,24 @@ export class ReservationsHostComponent implements OnInit {
     }
 
     getStatusText(status: string): string {
-        switch (status.toUpperCase()) {
+        const statusUpper = status?.toUpperCase();
+        switch (statusUpper) {
             case 'CONFIRMED':
                 return 'Confirmada';
             case 'PENDING':
                 return 'Pendiente';
             case 'CANCELLED':
+            case 'CANCELED':
                 return 'Cancelada';
             case 'COMPLETED':
                 return 'Completada';
             default:
-                return status;
+                return status || 'Desconocido';
         }
     }
 
     getImageUrl(booking: BookingDto): string {
-        return booking.accommodation.mainImage || 'assets/imagenes/default-accommodation.jpg';
+        return booking.accommodation?.mainImage || 'assets/imagenes/default-accommodation.jpg';
     }
 
     showError(message: string): void {

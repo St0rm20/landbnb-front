@@ -5,6 +5,7 @@
     --color-primary: #4a675f;
     --color-accent: #b97479;
     --color-dark: #333;
+    --color-light: #f8f9fa;
 }
 
 /* ==========================
@@ -14,7 +15,7 @@ body {
     background: url('../../../assets/imagenes/Hostal1.jpg.webp') no-repeat center center/cover;
     background-attachment: fixed;
     background-size: cover;
-    color: #fff;
+    color: #171515;
     padding-top: 80px;
     min-height: 100vh;
 }
@@ -426,6 +427,15 @@ body {
 /* ==========================
    TARJETAS DE RESERVA
    ========================== */
+
+.reserva-title {
+    color: var(--color-dark) !important;
+    font-weight: 700;
+    margin: 0;
+    font-size: 1.1rem;
+    flex: 1;
+    line-height: 1.4;
+}
 .reserva-card {
     background: rgba(255, 255, 255, 0.95);
     border-radius: 12px;
@@ -435,11 +445,12 @@ body {
     display: flex;
     gap: 1.5rem;
     align-items: flex-start;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .reserva-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     background: rgba(255, 255, 255, 0.98);
 }
 
@@ -469,14 +480,7 @@ body {
     gap: 1rem;
 }
 
-.reserva-title {
-    color: var(--color-dark);
-    font-weight: 700;
-    margin: 0;
-    font-size: 1.1rem;
-    flex: 1;
-    line-height: 1.4;
-}
+
 
 .status-badge {
     padding: 0.4rem 0.8rem;
@@ -778,4 +782,62 @@ body {
     .nav-tabs .nav-item {
         flex: none;
     }
+}
+
+/* ==========================
+   ESTILOS ESPECÍFICOS PARA EL POPUP DE CONTACTO
+   ========================== */
+.contact-popup .swal2-popup {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 15px;
+}
+
+.contact-popup .swal2-title {
+    color: #333;
+    font-weight: 600;
+}
+
+.contact-popup .text-left {
+    color: #333;
+}
+
+.contact-popup .text-left strong {
+    color: var(--color-accent);
+}
+
+.contact-popup a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.contact-popup a:hover {
+    color: var(--color-accent);
+    text-decoration: underline;
+}
+
+/* ==========================
+   CORRECCIÓN COLOR TÍTULO RESERVAS - SOLUCIÓN DEFINITIVA
+   ========================== */
+.reserva-card .reserva-title,
+.reserva-card .reserva-content .reserva-title,
+.reserva-header .reserva-title,
+h5.reserva-title {
+    color: #333 !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    font-size: 1.1rem !important;
+    line-height: 1.4 !important;
+}
+
+/* Asegurar que todo el contenido de la card tenga color oscuro */
+.reserva-card,
+.reserva-card *:not(.status-badge):not(.btn) {
+    color: #333 !important;
+}
+
+/* Mantener los colores de los badges y botones */
+.reserva-card .status-badge,
+.reserva-card .btn {
+    color: inherit !important;
 }
