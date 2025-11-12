@@ -75,7 +75,7 @@
                         <i class="fas fa-calendar-alt me-2"></i> Reservas
                     </a>
                     <a routerLink="/statistics"
-                       class="list-group-item list-group-item-action"
+                       class="list-group-item list-group-item-action active"
                        routerLinkActive="active">
                         <i class="fas fa-chart-line me-2"></i> Métricas
                     </a>
@@ -90,11 +90,19 @@
                 <p class="lead text-white-50">Resumen de rendimiento de tus alojamientos</p>
             </div>
 
+            <!-- Loading Spinner para alojamientos -->
+            <div *ngIf="isLoadingAccommodations" class="text-center py-5">
+                <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Cargando alojamientos...</span>
+                </div>
+                <p class="text-white mt-3">Cargando alojamientos...</p>
+            </div>
+
             <!-- Selector de Alojamiento y Fechas -->
-            <div *ngIf="accommodations.length > 0" class="selector-container">
-                <div class="row align-items-end">
+            <div *ngIf="!isLoadingAccommodations && accommodations.length > 0" class="selector-container mb-4">
+                <div class="row align-items-end g-3">
                     <div class="col-md-5">
-                        <label for="accommodationSelect" class="form-label fw-bold">
+                        <label for="accommodationSelect" class="form-label text-white fw-bold">
                             <i class="fas fa-building me-2"></i>Selecciona un Alojamiento
                         </label>
                         <select
@@ -109,7 +117,9 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label for="startDate" class="form-label fw-bold">Fecha Inicio</label>
+                        <label for="startDate" class="form-label text-white fw-bold">
+                            <i class="fas fa-calendar-alt me-2"></i>Fecha Inicio
+                        </label>
                         <input
                                 type="date"
                                 id="startDate"
@@ -119,7 +129,9 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label for="endDate" class="form-label fw-bold">Fecha Fin</label>
+                        <label for="endDate" class="form-label text-white fw-bold">
+                            <i class="fas fa-calendar-alt me-2"></i>Fecha Fin
+                        </label>
                         <input
                                 type="date"
                                 id="endDate"
@@ -129,64 +141,97 @@
                     </div>
 
                     <div class="col-md-1">
+                        <label class="form-label text-white fw-bold d-block" style="visibility: hidden;">Actualizar</label>
                         <button
                                 class="btn btn-primary w-100"
-                                (click)="loadMetrics()"
-                                [disabled]="isLoadingMetrics">
+                                (click)="refreshMetrics()"
+                                [disabled]="isLoadingMetrics"
+                                title="Actualizar métricas">
                             <i class="fas fa-sync-alt" [class.fa-spin]="isLoadingMetrics"></i>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Loading Spinner -->
+            <!-- Loading Spinner para métricas -->
             <div *ngIf="isLoadingMetrics" class="text-center py-5">
                 <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
-                    <span class="visually-hidden">Cargando...</span>
+                    <span class="visually-hidden">Cargando métricas...</span>
                 </div>
                 <p class="text-white mt-3">Cargando métricas...</p>
             </div>
 
-            <!-- Tarjetas de Métricas -->
-            <div *ngIf="metrics && !isLoadingMetrics" class="row">
-                <div class="col-md-4 col-sm-6" *ngFor="let metric of displayMetrics">
-                    <div class="metric-card">
-                        <div class="icon">
-                            <i [class]="metric.icon"></i>
-                        </div>
-                        <div class="metric-info">
-                            <h2>{{ metric.value }}</h2>
-                            <p>{{ metric.label }}</p>
-                        </div>
+            <!-- Tarjetas de Métricas Simplificadas -->
+            <div *ngIf="metrics && !isLoadingMetrics && !isLoadingAccommodations" class="metrics-grid">
+                <div *ngFor="let metric of displayMetrics" class="metric-card" [class]="metric.type || ''">
+                    <div class="metric-icon">
+                        <i [class]="metric.icon"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-value">{{ metric.value }}</div>
+                        <div class="metric-label">{{ metric.label }}</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Gráfico de Ingresos -->
-            <div *ngIf="metrics && !isLoadingMetrics" class="chart-container mt-4">
-                <h3 class="text-white mb-4">
-                    <i class="fas fa-chart-area me-2"></i>Ingresos por Mes
-                </h3>
-                <canvas id="ingresosChart" height="80"></canvas>
+            <!-- Resumen de Estado Simplificado -->
+            <div *ngIf="metrics && !isLoadingMetrics && !isLoadingAccommodations" class="summary-container">
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <h4 class="text-white mb-3">
+                            <i class="fas fa-info-circle me-2"></i>Resumen General
+                        </h4>
+                        <div class="summary-content">
+                            <p class="text-white-50">
+                                <strong>Alojamiento:</strong> {{ metrics.accommodationName }}<br>
+                                <strong>Período:</strong> {{ startDate }} a {{ endDate }}<br>
+                                <strong>Total Reservas:</strong> {{ formatNumber(metrics.totalBookings) }}<br>
+                                <strong>Reservas Activas:</strong> {{ formatNumber(metrics.pendingBookings) }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <h4 class="text-white mb-3">
+                            <i class="fas fa-chart-pie me-2"></i>Distribución
+                        </h4>
+                        <div class="summary-content">
+                            <p class="text-white-50">
+                                <strong>Confirmadas:</strong> {{ formatNumber(metrics.confirmedBookings) }}<br>
+                                <strong>Canceladas:</strong> {{ formatNumber(metrics.cancelledBookings) }}<br>
+                                <strong>Valor Promedio:</strong> {{ metrics.averageBookingValue > 0 ? '$' + formatNumber(metrics.averageBookingValue) + ' COP' : '$0 COP' }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Estado: Sin métricas pero con alojamientos -->
+            <div *ngIf="!metrics && !isLoadingMetrics && !isLoadingAccommodations && accommodations.length > 0" class="empty-state text-center py-5">
+                <div class="empty-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <h3 class="text-white mt-3">No hay datos disponibles</h3>
+                <p class="text-white-50">Selecciona un alojamiento y rango de fechas para ver las métricas.</p>
+                <p class="text-white-50 small mt-2">Si el problema persiste, verifica que el servicio de métricas esté funcionando.</p>
+                <button class="btn btn-primary mt-3" (click)="loadMetrics()">
+                    <i class="fas fa-sync me-2"></i>Intentar cargar métricas
+                </button>
             </div>
 
-            <!-- Estados Vacíos -->
-            <div *ngIf="!metrics && !isLoadingMetrics && accommodations.length > 0" class="empty-state mt-4">
-                <i class="fas fa-chart-line"></i>
-                <h3>Selecciona un alojamiento y rango de fechas para ver las métricas.</h3>
-            </div>
-
-            <div *ngIf="accommodations.length === 0 && !isLoadingMetrics" class="empty-state mt-4">
-                <i class="fas fa-home"></i>
-                <h3>No tienes alojamientos para generar métricas.</h3>
-                <p class="text-white-50 mt-3">Crea tu primer alojamiento para comenzar a ver estadísticas.</p>
-                <a routerLink="/create-place" class="btn btn-light mt-3">
-                    <i class="fas fa-plus me-2"></i>Crear Alojamiento
+            <!-- Estado: Sin alojamientos -->
+            <div *ngIf="!isLoadingAccommodations && accommodations.length === 0" class="empty-state text-center py-5">
+                <div class="empty-icon">
+                    <i class="fas fa-home"></i>
+                </div>
+                <h3 class="text-white mt-3">No tienes alojamientos registrados</h3>
+                <p class="text-white-50 mb-4">Crea tu primer alojamiento para comenzar a ver estadísticas y métricas.</p>
+                <a routerLink="/create-place" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Crear Primer Alojamiento
                 </a>
             </div>
         </div>
     </div>
 </div>
+
 
 <footer class="footer">
     <div class="footer-content">

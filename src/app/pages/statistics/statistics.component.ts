@@ -1,33 +1,23 @@
-import { Component, OnInit, HostListener, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import Swal from 'sweetalert2';
-import { Chart, registerables } from 'chart.js';
 
 // Servicios y DTO
 import { AccommodationService } from '../../services/accommodation-service.service';
 import { TokenService } from '../../services/token-service.service';
 import { UserService } from '../../services/user-service.service';
-import { ResponseDTO } from '../../models/response-dto.interface';
 import { AccommodationDTO } from '../../models/accommodation-dto.interface';
 import { AccommodationMetricsDTO } from '../../models/accommodation-metrics-dto.interface';
 import { UserDto } from '../../models/user-dto.interface';
-
-// Registrar todos los componentes de Chart.js
-Chart.register(...registerables);
-
-// Tipos para la paginación
-interface PagedResponse {
-    content: AccommodationDTO[];
-    totalPages: number;
-}
 
 // Interfaz para el formato que usa tu HTML
 interface DisplayMetric {
     icon: string;
     value: string;
     label: string;
+    type?: string; // Para aplicar clases CSS específicas
 }
 
 @Component({
@@ -37,7 +27,7 @@ interface DisplayMetric {
     templateUrl: './statistics.component.html',
     styleUrls: ['./statistics.component.css']
 })
-export class StatisticsComponent implements OnInit, AfterViewInit, OnDestroy {
+export class StatisticsComponent implements OnInit {
 
     // --- Propiedades del Navbar y Auth ---
     dropdownOpen = false;
@@ -51,14 +41,12 @@ export class StatisticsComponent implements OnInit, AfterViewInit, OnDestroy {
     selectedAccommodationId: number | null = null;
     metrics: AccommodationMetricsDTO | null = null;
     isLoadingMetrics: boolean = false;
+    isLoadingAccommodations: boolean = false;
     displayMetrics: DisplayMetric[] = [];
 
     // --- Control de Fechas ---
-    startDate: string = '2024-06-01';
-    endDate: string = new Date().toISOString().substring(0, 10);
-
-    // --- Chart.js ---
-    private chart: Chart | null = null;
+    startDate: string = '';
+    endDate: string = '';
 
     constructor(
         private accommodationService: AccommodationService,
@@ -77,20 +65,21 @@ export class StatisticsComponent implements OnInit, AfterViewInit, OnDestroy {
             return;
         }
 
+        // Configurar fechas por defecto (últimos 30 días)
+        this.setDefaultDateRange();
         this.userEmail = this.tokenService.getEmail();
         this.loadUserProfile();
         this.loadHostAccommodations();
     }
 
-    ngAfterViewInit(): void {
-        // El gráfico se creará después de cargar las métricas
-    }
+    // ===== CONFIGURACIÓN DE FECHAS =====
+    setDefaultDateRange(): void {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - 30); // Últimos 30 días
 
-    ngOnDestroy(): void {
-        // Destruir el gráfico cuando se destruya el componente
-        if (this.chart) {
-            this.chart.destroy();
-        }
+        this.endDate = end.toISOString().split('T')[0];
+        this.startDate = start.toISOString().split('T')[0];
     }
 
     // ===== GESTIÓN DEL DROPDOWN =====
@@ -122,11 +111,14 @@ export class StatisticsComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     loadHostAccommodations(): void {
+        this.isLoadingAccommodations = true;
         this.accommodations = [];
 
         this.accommodationService.getMyAccommodations(0).subscribe({
             next: (data: any) => {
-                const accommodationsArray = data?.content || data;
+                console.log('Alojamientos recibidos:', data);
+
+                const accommodationsArray = data?.content || data || [];
                 this.accommodations = Array.isArray(accommodationsArray) ? accommodationsArray : [];
 
                 if (this.accommodations.length > 0) {
@@ -136,57 +128,114 @@ export class StatisticsComponent implements OnInit, AfterViewInit, OnDestroy {
                     this.metrics = null;
                     this.isLoadingMetrics = false;
                 }
+                this.isLoadingAccommodations = false;
             },
             error: (err) => {
                 console.error('Error cargando alojamientos:', err);
                 this.accommodations = [];
                 this.metrics = null;
+                this.isLoadingAccommodations = false;
+                this.isLoadingMetrics = false;
                 Swal.fire('Error', 'No se pudieron cargar tus alojamientos.', 'error');
             }
         });
     }
 
     loadMetrics(): void {
-        if (!this.selectedAccommodationId || !this.startDate || !this.endDate) return;
+        if (!this.selectedAccommodationId || !this.startDate || !this.endDate) {
+            console.warn('Faltan datos para cargar métricas:', {
+                accommodationId: this.selectedAccommodationId,
+                startDate: this.startDate,
+                endDate: this.endDate
+            });
+            return;
+        }
 
         this.isLoadingMetrics = true;
         this.metrics = null;
         this.displayMetrics = [];
 
-        // Destruir gráfico anterior si existe
-        if (this.chart) {
-            this.chart.destroy();
-            this.chart = null;
-        }
+        console.log('Cargando métricas para:', {
+            accommodationId: this.selectedAccommodationId,
+            startDate: this.startDate,
+            endDate: this.endDate
+        });
 
-        const start = this.startDate;
-        const end = this.endDate;
+        this.accommodationService.getMetrics(this.selectedAccommodationId, this.startDate, this.endDate).subscribe({
+            next: (response: any) => {
+                console.log('Respuesta completa de métricas:', response);
 
-        this.accommodationService.getMetrics(this.selectedAccommodationId, start, end).subscribe({
-            next: (data: any) => {
-                // El backend puede devolver directamente las métricas o en un wrapper
-                this.metrics = data.content ? data.content as AccommodationMetricsDTO : data as AccommodationMetricsDTO;
+                // Manejar diferentes estructuras de respuesta
+                let metricsData = null;
 
-                console.log('Métricas recibidas:', this.metrics); // Para debug
+                if (response && response.content) {
+                    metricsData = response.content;
+                } else if (response && typeof response === 'object') {
+                    metricsData = response;
+                } else if (response && response.data) {
+                    metricsData = response.data;
+                }
 
-                this.adaptMetricsForDisplay();
+                if (metricsData) {
+                    this.metrics = this.normalizeMetricsData(metricsData);
+                    console.log('Métricas normalizadas:', this.metrics);
+                    this.adaptMetricsForDisplay();
+                } else {
+                    console.warn('No se pudieron extraer métricas de la respuesta:', response);
+                    this.metrics = null;
+                }
+
                 this.isLoadingMetrics = false;
-
-                // Crear el gráfico después de un pequeño delay para asegurar que el DOM esté listo
-                setTimeout(() => this.createRevenueChart(), 100);
             },
             error: (err) => {
                 console.error('Error cargando métricas:', err);
                 this.metrics = null;
                 this.isLoadingMetrics = false;
 
-                const errorMessage = err.error?.message || err.message || 'No se pudieron obtener las métricas.';
-                Swal.fire('Error', errorMessage, 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudieron cargar las métricas. Verifica que el servicio esté disponible.',
+                    confirmButtonText: 'Entendido'
+                });
             }
         });
     }
 
-    // ===== TRANSFORMACIÓN DE DATOS =====
+    // ===== NORMALIZACIÓN DE DATOS =====
+    normalizeMetricsData(data: any): AccommodationMetricsDTO {
+        console.log('Normalizando datos:', data);
+
+        // Calcular totalBookings si no viene en la respuesta
+        const confirmedBookings = data.confirmedBookings || data.confirmed_bookings || data.confirmed || 0;
+        const cancelledBookings = data.cancelledBookings || data.cancelled_bookings || data.cancelled || 0;
+        const pendingBookings = data.pendingBookings || data.pending_bookings || data.pending || 0;
+
+        // Si totalBookings no viene, calcularlo
+        const totalBookings = data.totalBookings || data.total_bookings || data.total ||
+            (confirmedBookings + cancelledBookings + pendingBookings);
+
+        // Calcular huéspedes reales basado en reservas confirmadas
+        const totalGuests = data.totalGuests || data.total_guests || data.guests || data.huespedes ||
+            (confirmedBookings * 2); // Estimación: 2 huéspedes por reserva confirmada
+
+        return {
+            accommodationId: data.accommodationId || data.accommodation_id || this.selectedAccommodationId || 0,
+            accommodationName: data.accommodationName || data.accommodation_name || data.name || 'Alojamiento',
+            totalRevenue: data.totalRevenue || data.total_revenue || data.revenue || data.ingresos || 0,
+            totalBookings: totalBookings,
+            confirmedBookings: confirmedBookings,
+            cancelledBookings: cancelledBookings,
+            pendingBookings: pendingBookings,
+            averageRating: data.averageRating || data.average_rating || data.rating || data.calificacion || 0,
+            totalReviews: data.totalReviews || data.total_reviews || data.reviews || data.resenas || 0,
+            occupancyRate: data.occupancyRate || data.occupancy_rate || data.ocupacion || 0,
+            totalGuests: totalGuests,
+            averageBookingValue: data.averageBookingValue || data.average_booking_value || data.avg_booking || 0
+        };
+    }
+
+    // ===== TRANSFORMACIÓN DE DATOS - SOLO MÉTRICAS ESENCIALES =====
     adaptMetricsForDisplay(): void {
         if (!this.metrics) {
             this.displayMetrics = [];
@@ -195,166 +244,77 @@ export class StatisticsComponent implements OnInit, AfterViewInit, OnDestroy {
 
         const m = this.metrics;
 
+        console.log('Adaptando métricas para mostrar:', m);
+
+        // Calcular métricas derivadas
+        const successRate = m.totalBookings > 0 ? (m.confirmedBookings / m.totalBookings) * 100 : 0;
+        const cancellationRate = m.totalBookings > 0 ? (m.cancelledBookings / m.totalBookings) * 100 : 0;
+
+        // SOLO 8 MÉTRICAS ESENCIALES
         this.displayMetrics = [
-            {
-                icon: 'fas fa-money-bill-wave',
-                value: this.formatNumber(m.totalRevenue) + ' COP',
-                label: 'Ingresos Totales'
-            },
             {
                 icon: 'fas fa-calendar-check',
                 value: this.formatNumber(m.confirmedBookings),
-                label: 'Reservas Confirmadas'
+                label: 'Reservas Confirmadas',
+                type: 'success'
             },
             {
-                icon: 'fas fa-star',
-                value: m.averageRating.toFixed(1),
-                label: `Calificación (${this.formatNumber(m.totalReviews)} reseñas)`
-            },
-            {
-                icon: 'fas fa-chart-line',
-                value: m.occupancyRate.toFixed(1) + '%',
-                label: 'Tasa de Ocupación'
+                icon: 'fas fa-money-bill-wave',
+                value: m.totalRevenue > 0 ? '$' + this.formatNumber(m.totalRevenue) + ' COP' : '$0 COP',
+                label: 'Ingresos Totales',
+                type: 'income'
             },
             {
                 icon: 'fas fa-users',
                 value: this.formatNumber(m.totalGuests),
-                label: 'Total de Huéspedes'
+                label: 'Total Huéspedes',
+                type: 'info'
             },
             {
-                icon: 'fas fa-dollar-sign',
-                value: this.formatNumber(m.averageBookingValue) + ' COP',
-                label: 'Valor Promedio por Reserva'
-            }
-        ];
-    }
-
-    // ===== CREACIÓN DEL GRÁFICO =====
-    createRevenueChart(): void {
-        const canvas = document.getElementById('ingresosChart') as HTMLCanvasElement;
-        if (!canvas) {
-            console.error('Canvas no encontrado');
-            return;
-        }
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        // Crear gradiente como en el diseño original
-        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(185, 116, 121, 0.6)');
-        gradient.addColorStop(1, 'rgba(185, 116, 121, 0.1)');
-
-        // Generar datos de ejemplo para los últimos 6 meses
-        const months = this.generateMonthLabels();
-        const revenueData = this.generateRevenueData();
-
-        this.chart = new Chart(canvas, {
-            type: 'line',
-            data: {
-                labels: months,
-                datasets: [{
-                    label: 'Ingresos',
-                    data: revenueData,
-                    backgroundColor: gradient,
-                    borderColor: 'rgba(185, 116, 121, 1)',
-                    borderWidth: 2,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: 'rgba(185, 116, 121, 1)',
-                    pointHoverRadius: 7,
-                    pointRadius: 5,
-                    pointBorderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                }]
+                icon: 'fas fa-star',
+                value: m.averageRating > 0 ? m.averageRating.toFixed(1) + '/5' : 'N/A',
+                label: 'Calificación Promedio',
+                type: 'rating'
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                        titleColor: '#fff',
-                        bodyColor: '#fff',
-                        padding: 10,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: (context) => {
-                                const value = context.parsed.y;
-                                return `Ingresos: ${this.formatNumber(value || 0)} COP`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.2)'
-                        },
-                        ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)',
-                            callback: (value) => {
-                                return this.formatNumber(Number(value));
-                            }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: 'rgba(255, 255, 255, 0.7)'
-                        }
-                    }
-                }
+            {
+                icon: 'fas fa-trophy',
+                value: successRate > 0 ? successRate.toFixed(1) + '%' : '0%',
+                label: 'Tasa de Confirmación',
+                type: 'success'
+            },
+            {
+                icon: 'fas fa-bed',
+                value: m.occupancyRate.toFixed(1) + '%',
+                label: 'Tasa de Ocupación',
+                type: 'info'
+            },
+            {
+                icon: 'fas fa-comment',
+                value: this.formatNumber(m.totalReviews),
+                label: 'Total Reseñas',
+                type: 'info'
+            },
+            {
+                icon: 'fas fa-ban',
+                value: cancellationRate > 0 ? cancellationRate.toFixed(1) + '%' : '0%',
+                label: 'Tasa de Cancelación',
+                type: 'warning'
             }
-        });
-    }
-
-    // ===== GENERACIÓN DE DATOS DE EJEMPLO =====
-    generateMonthLabels(): string[] {
-        const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-        const result: string[] = [];
-        const currentMonth = new Date().getMonth();
-
-        for (let i = 5; i >= 0; i--) {
-            const monthIndex = (currentMonth - i + 12) % 12;
-            result.push(months[monthIndex]);
-        }
-
-        return result;
-    }
-
-    generateRevenueData(): number[] {
-        if (!this.metrics || !this.metrics.totalRevenue) {
-            return [0, 0, 0, 0, 0, 0];
-        }
-
-        // Distribución simulada de ingresos a lo largo de 6 meses
-        const total = this.metrics.totalRevenue;
-        const baseValue = total / 6;
-
-        return [
-            Math.round(baseValue * 0.8),
-            Math.round(baseValue * 0.9),
-            Math.round(baseValue * 1.1),
-            Math.round(baseValue * 1.2),
-            Math.round(baseValue * 0.95),
-            Math.round(baseValue * 1.05)
         ];
     }
 
     // ===== EVENTOS =====
     onAccommodationChange(): void {
+        console.log('Alojamiento cambiado:', this.selectedAccommodationId);
         this.loadMetrics();
     }
 
     onDateRangeChange(): void {
+        console.log('Rango de fechas cambiado:', this.startDate, 'a', this.endDate);
+        this.loadMetrics();
+    }
+
+    refreshMetrics(): void {
         this.loadMetrics();
     }
 
