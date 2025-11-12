@@ -13,18 +13,32 @@ import { SearchAccommodationDTO } from '../../models/search-accommodation-dto.in
 import { ResponseDTO } from '../../models/response-dto.interface';
 import Swal from 'sweetalert2';
 
-
 interface Filter {
     name: string;
     icon: string;
     active: boolean;
     type: string;
+    backendField: string; // 👈 NUEVO: campo que espera el backend
 }
-
 
 interface PagedResponse {
     content: AccommodationDTO[];
     totalPages: number;
+}
+
+// (Interfaz para el DTO simple que SÍ devuelve el backend en getAll)
+interface AccommodationSimpleDto {
+    id: number;
+    title: string;
+    description: string;
+    city: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    pricePerNight: number;
+    maxCapacity: number;
+    services: string[];
+    url: string;
 }
 
 @Component({
@@ -36,7 +50,6 @@ interface PagedResponse {
 })
 export class HomeComponent implements OnInit, AfterViewInit {
 
-    // Propiedades del componente
     dropdownOpen = false;
     searchDestination: string = '';
     checkinDate: string = '';
@@ -53,24 +66,23 @@ export class HomeComponent implements OnInit, AfterViewInit {
     currentPage: number = 1;
     totalPages: number = 1;
     isSearchActive: boolean = false;
+    isFavoritesActive: boolean = false;
     lastSearchDTO: SearchAccommodationDTO = {};
+    numberOfGuests: number = 1;
 
-
+    // 👇 FILTROS ACTUALIZADOS - con los nombres EXACTOS que busca el backend
     filters: Filter[] = [
-        { name: 'Populares', icon: 'fas fa-star', active: true, type: 'popular' },
-        { name: 'WiFi', icon: 'fas fa-wifi', active: false, type: 'wifi' },
-        { name: 'Piscina', icon: 'fas fa-swimming-pool', active: false, type: 'pool' },
-        { name: 'Mascotas', icon: 'fas fa-dog', active: false, type: 'pets' },
-        { name: 'Aire Acon.', icon: 'fas fa-snowflake', active: false, type: 'ac' },
-        { name: 'Cocina', icon: 'fas fa-utensils', active: false, type: 'kitchen' },
-        { name: 'Parking', icon: 'fas fa-parking', active: false, type: 'parking' }
+        { name: 'Favoritos', icon: 'fas fa-heart', active: false, type: 'favorites', backendField: '' },
+        { name: 'WiFi', icon: 'fas fa-wifi', active: false, type: 'WiFi', backendField: 'hasWifi' },
+        { name: 'Piscina', icon: 'fas fa-swimming-pool', active: false, type: 'Piscina', backendField: 'hasPool' },
+        { name: 'Mascotas', icon: 'fas fa-dog', active: false, type: 'Mascotas', backendField: 'allowsPets' },
+        { name: 'Aire Acon.', icon: 'fas fa-snowflake', active: false, type: 'Aire Acondicionado', backendField: 'hasAirConditioning' },
+        { name: 'Cocina', icon: 'fas fa-utensils', active: false, type: 'Cocina', backendField: 'hasKitchen' },
+        { name: 'Parking', icon: 'fas fa-parking', active: false, type: 'Parking', backendField: 'hasParking' }
     ];
-
 
     properties: AccommodationDTO[] = [];
     filteredProperties: AccommodationDTO[] = [];
-
-    // Propiedades de Autenticación
     isLoggedIn: boolean = false;
     userName: string = '';
     userEmail: string = '';
@@ -85,9 +97,7 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
     ngOnInit(): void {
         this.initializeDates();
-        this.loadInitialAccommodations(0); // Carga alojamientos de la API
-
-        // Carga el estado de autenticación
+        this.loadInitialAccommodations(0);
         this.isLoggedIn = this.tokenService.isLogged();
         if (this.isLoggedIn) {
             this.userEmail = this.tokenService.getEmail();
@@ -98,51 +108,95 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
     ngAfterViewInit(): void { }
 
-    /**
-     * Carga el perfil del usuario para obtener el nombre
-     */
     loadUserProfile(): void {
         this.userService.getProfile().subscribe({
-            next: (data: UserDto) => {
-                this.userName = data.name;
-            },
+            next: (data: UserDto) => { this.userName = data.name; },
             error: (error: any) => {
                 console.error("Error cargando perfil del usuario", error);
-                this.userName = ''; // Si falla, el HTML usará el email
+                this.userName = '';
             }
         });
     }
 
-    /**
-     * Cierra la sesión
-     */
     logout(event: Event): void {
         event.preventDefault();
         this.tokenService.logout();
         this.router.navigate(['/login']).then(() => window.location.reload());
     }
 
-    /**
-     * Carga los alojamientos iniciales (GET /api/accommodations)
-     */
     loadInitialAccommodations(page: number): void {
         this.isSearchActive = false;
+        this.isFavoritesActive = false;
         this.accommodationService.getAll(page).subscribe({
-            next: (data: ResponseDTO) => {
-                const responseData = data.content as PagedResponse;
-                this.properties = responseData.content;
+            next: (data: any) => {
+                this.properties = (data.content || []).map((simpleDto: AccommodationSimpleDto) => {
+                    return {
+                        id: simpleDto.id,
+                        title: simpleDto.title,
+                        description: simpleDto.description,
+                        city: simpleDto.city,
+                        address: simpleDto.address,
+                        latitude: simpleDto.latitude,
+                        longitude: simpleDto.longitude,
+                        pricePerNight: simpleDto.pricePerNight,
+                        maxCapacity: simpleDto.maxCapacity,
+                        services: simpleDto.services,
+                        mainImage: simpleDto.url,
+                        images: [simpleDto.url],
+                        averageRating: 0,
+                        totalBookings: 0
+                    };
+                });
+
                 this.filteredProperties = this.properties;
-                this.totalPages = responseData.totalPages;
+                this.totalPages = data?.totalPages || 1;
                 this.currentPage = page + 1;
             },
             error: (error: any) => {
+                this.properties = [];
+                this.filteredProperties = [];
                 Swal.fire('Error', error.error.content || "Error al obtener los alojamientos", 'error');
             }
         });
     }
 
+    loadFavorites(page: number): void {
+        this.isSearchActive = true;
+        this.isFavoritesActive = true;
+
+        this.accommodationService.getFavoriteAccommodations(page).subscribe({
+            next: (data: any) => {
+                this.properties = (data.content || []).map((simpleDto: AccommodationSimpleDto) => ({
+                    id: simpleDto.id,
+                    title: simpleDto.title,
+                    description: simpleDto.description,
+                    city: simpleDto.city,
+                    address: simpleDto.address,
+                    latitude: simpleDto.latitude,
+                    longitude: simpleDto.longitude,
+                    pricePerNight: simpleDto.pricePerNight,
+                    maxCapacity: simpleDto.maxCapacity,
+                    services: simpleDto.services,
+                    mainImage: simpleDto.url,
+                    images: [simpleDto.url],
+                    averageRating: 0,
+                    totalBookings: 0
+                }));
+
+                this.filteredProperties = this.properties;
+                this.totalPages = data?.totalPages || 1;
+                this.currentPage = page + 1;
+            },
+            error: (err) => {
+                this.properties = [];
+                this.filteredProperties = [];
+                Swal.fire('Error', 'No se pudieron cargar tus favoritos', 'error');
+            }
+        });
+    }
+
     /**
-     * Ejecuta una búsqueda (POST /api/accommodations/search)
+     * 👇 MÉTODO CORREGIDO - Ahora envía los booleanos correctos al backend
      */
     runSearch(page: number): void {
         this.validateDates();
@@ -152,31 +206,51 @@ export class HomeComponent implements OnInit, AfterViewInit {
         }
 
         this.isSearchActive = true;
+        this.isFavoritesActive = false;
 
-        const activeServices = this.filters
-            .filter(f => f.active && f.type !== 'popular')
-            .map(f => f.type);
-
-        const searchDTO: SearchAccommodationDTO = {
+        // 👇 CONSTRUIR DTO CON LOS CAMPOS BOOLEANOS QUE ESPERA EL BACKEND
+        const searchDTO: any = {
             city: this.searchDestination || undefined,
             checkIn: this.checkinDate || undefined,
             checkOut: this.checkoutDate || undefined,
             minPrice: this.minPrice,
             maxPrice: this.maxPrice,
-            services: activeServices.length > 0 ? activeServices : undefined
+            numberOfGuests: this.numberOfGuests
         };
+
+        // 👇 AGREGAR LOS BOOLEANOS DE SERVICIOS AL DTO
+        this.filters.forEach(filter => {
+            if (filter.backendField && filter.backendField !== '') {
+                searchDTO[filter.backendField] = filter.active ? true : undefined;
+            }
+        });
 
         this.lastSearchDTO = searchDTO;
 
+        console.log('DTO de búsqueda enviado al backend:', searchDTO);
+
         this.accommodationService.search(page, searchDTO).subscribe({
-            next: (data: ResponseDTO) => {
-                const responseData = data.content as PagedResponse;
-                this.properties = responseData.content;
+            next: (data: any) => {
+                console.log('Respuesta de búsqueda:', data);
+                this.properties = data?.content || [];
                 this.filteredProperties = this.properties;
-                this.totalPages = responseData.totalPages;
+                this.totalPages = data?.totalPages || 1;
                 this.currentPage = page + 1;
+
+                if (this.properties.length === 0) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Sin resultados',
+                        text: 'No se encontraron alojamientos con los filtros seleccionados',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
             },
             error: (error: any) => {
+                console.error('Error en búsqueda:', error);
+                this.properties = [];
+                this.filteredProperties = [];
                 Swal.fire('Error', error.error.content || "Error al buscar alojamientos", 'error');
             }
         });
@@ -184,30 +258,112 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
     // --- MÉTODOS DE EVENTOS ---
 
-    searchProperties(): void { this.runSearch(0); }
-    toggleFilter(filter: Filter): void { filter.active = !filter.active; this.runSearch(0); }
-    onDestinationChange(): void { }
+    searchProperties(): void {
+        if (this.isFavoritesActive) {
+            this.filters.find(f => f.type === 'favorites')!.active = false;
+            this.isFavoritesActive = false;
+        }
+        this.runSearch(0);
+    }
+
+    toggleFilter(filter: Filter): void {
+        console.log('Toggle filter:', filter);
+
+        if (filter.type === 'favorites') {
+            this.isFavoritesActive = !this.isFavoritesActive;
+            filter.active = this.isFavoritesActive;
+
+            this.filters.forEach(f => {
+                if (f.type !== 'favorites') {
+                    f.active = false;
+                }
+            });
+
+            this.searchDestination = '';
+
+            if (this.isFavoritesActive) {
+                this.loadFavorites(0);
+            } else {
+                this.loadInitialAccommodations(0);
+            }
+
+        } else {
+            filter.active = !filter.active;
+
+            this.isFavoritesActive = false;
+            const favFilter = this.filters.find(f => f.type === 'favorites');
+            if (favFilter) {
+                favFilter.active = false;
+            }
+
+            this.runSearch(0);
+        }
+    }
+
+    onDestinationChange(): void {
+        this.isFavoritesActive = false;
+        const favFilter = this.filters.find(f => f.type === 'favorites');
+        if (favFilter) {
+            favFilter.active = false;
+        }
+
+        if (this.searchDestination.trim()) {
+            this.runSearch(0);
+        }
+    }
 
     changePage(page: number): void {
         if (page >= 1 && page <= this.totalPages) {
             const targetPage = page - 1;
-            if (this.isSearchActive) { this.runSearch(targetPage); }
-            else { this.loadInitialAccommodations(targetPage); }
+
+            if (this.isFavoritesActive) {
+                this.loadFavorites(targetPage);
+            }
+            else if (this.isSearchActive) {
+                this.runSearch(targetPage);
+            }
+            else {
+                this.loadInitialAccommodations(targetPage);
+            }
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }
 
-    // --- MÉTODOS AUXILIARES ---
+    // Método para limpiar todos los filtros
+    clearAllFilters(): void {
+        this.filters.forEach(filter => {
+            filter.active = false;
+        });
+        this.searchDestination = '';
+        this.minPrice = 50000;
+        this.maxPrice = 500000;
+        this.numberOfGuests = 1;
+        this.initializeDates();
+
+        this.isFavoritesActive = false;
+        this.isSearchActive = false;
+
+        this.loadInitialAccommodations(0);
+    }
+
+    // Método para verificar si hay filtros activos
+    get activeFiltersCount(): number {
+        return this.filters.filter(f => f.active && f.type !== 'favorites').length;
+    }
+
+    // --- MÉTODOS AUXILIARES (Sin cambios) ---
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
         if (!target.closest('.dropdown')) { this.dropdownOpen = false; }
     }
+
     toggleDropdown(event: Event): void {
         event.preventDefault();
         event.stopPropagation();
         this.dropdownOpen = !this.dropdownOpen;
     }
+
     initializeDates(): void {
         const today = new Date();
         this.minDate = this.formatDate(today);
@@ -218,26 +374,41 @@ export class HomeComponent implements OnInit, AfterViewInit {
         this.updateMinCheckoutDate();
         this.dateError = '';
     }
+
     formatDate(date: Date): string {
         const year = date.getFullYear();
         const month = ('0' + (date.getMonth() + 1)).slice(-2);
         const day = ('0' + date.getDate()).slice(-2);
         return `${year}-${month}-${day}`;
     }
+
     onDateChange(): void {
         this.validateDates();
-        if (!this.dateError) { this.runSearch(0); }
+        if (!this.dateError) {
+            this.isFavoritesActive = false;
+            const favFilter = this.filters.find(f => f.type === 'favorites');
+            if (favFilter) { favFilter.active = false; }
+            this.runSearch(0);
+        }
     }
+
     validateDates(): void {
         this.dateError = '';
         if (this.checkinDate && this.checkoutDate) {
             const checkin = new Date(this.checkinDate);
             const checkout = new Date(this.checkoutDate);
-            if (checkout < checkin) { this.dateError = 'La fecha de salida no puede ser anterior a la fecha de entrada'; return; }
-            if (checkin.getTime() === checkout.getTime()) { this.dateError = 'La estadía debe ser de al menos una noche'; return; }
+            if (checkout < checkin) {
+                this.dateError = 'La fecha de salida no puede ser anterior a la fecha de entrada';
+                return;
+            }
+            if (checkin.getTime() === checkout.getTime()) {
+                this.dateError = 'La estadía debe ser de al menos una noche';
+                return;
+            }
             this.updateMinCheckoutDate();
         }
     }
+
     updateMinCheckoutDate(): void {
         if (this.checkinDate) {
             const checkin = new Date(this.checkinDate);
@@ -246,30 +417,55 @@ export class HomeComponent implements OnInit, AfterViewInit {
             this.minCheckoutDate = this.formatDate(minCheckout);
             if (this.checkoutDate) {
                 const checkout = new Date(this.checkoutDate);
-                if (checkout <= checkin) { this.checkoutDate = this.minCheckoutDate; }
+                if (checkout <= checkin) {
+                    this.checkoutDate = this.minCheckoutDate;
+                }
             }
         }
     }
-    clearDateError(): void { this.dateError = ''; }
-    getRangeLeft(): string { return ((this.minPrice - this.minRange) / (this.maxRange - this.minRange) * 100) + '%'; }
-    getRangeWidth(): string { return ((this.maxPrice - this.minPrice) / (this.maxRange - this.minRange) * 100) + '%'; }
-    getHandlePosition(handle: 'min' | 'max'): string { const value = handle === 'min' ? this.minPrice : this.maxPrice; return ((value - this.minRange) / (this.maxRange - this.minRange) * 100) + '%'; }
+
+    clearDateError(): void {
+        this.dateError = '';
+    }
+
+    getRangeLeft(): string {
+        return ((this.minPrice - this.minRange) / (this.maxRange - this.minRange) * 100) + '%';
+    }
+
+    getRangeWidth(): string {
+        return ((this.maxPrice - this.minPrice) / (this.maxRange - this.minRange) * 100) + '%';
+    }
+
+    getHandlePosition(handle: 'min' | 'max'): string {
+        const value = handle === 'min' ? this.minPrice : this.maxPrice;
+        return ((value - this.minRange) / (this.maxRange - this.minRange) * 100) + '%';
+    }
+
     startDrag(event: MouseEvent, handle: 'min' | 'max'): void {
         event.preventDefault();
         event.stopPropagation();
         this.isDragging = true;
         this.activeHandle = handle;
-        const moveHandler = (moveEvent: MouseEvent) => { if (this.isDragging && this.activeHandle) { this.updateSliderValue(moveEvent); } };
+        const moveHandler = (moveEvent: MouseEvent) => {
+            if (this.isDragging && this.activeHandle) {
+                this.updateSliderValue(moveEvent);
+            }
+        };
         const upHandler = () => {
             this.isDragging = false;
             this.activeHandle = null;
             document.removeEventListener('mousemove', moveHandler);
             document.removeEventListener('mouseup', upHandler);
+
+            this.isFavoritesActive = false;
+            const favFilter = this.filters.find(f => f.type === 'favorites');
+            if (favFilter) { favFilter.active = false; }
             this.runSearch(0);
         };
         document.addEventListener('mousemove', moveHandler);
         document.addEventListener('mouseup', upHandler);
     }
+
     onTrackClick(event: MouseEvent): void {
         const track = event.currentTarget as HTMLElement;
         const rect = track.getBoundingClientRect();
@@ -278,10 +474,19 @@ export class HomeComponent implements OnInit, AfterViewInit {
         const value = Math.round(percentage * (this.maxRange - this.minRange) + this.minRange);
         const minDistance = Math.abs(value - this.minPrice);
         const maxDistance = Math.abs(value - this.maxPrice);
-        if (minDistance < maxDistance) { this.minPrice = Math.min(value, this.maxPrice - 10000); }
-        else { this.maxPrice = Math.max(value, this.minPrice + 10000); }
+        if (minDistance < maxDistance) {
+            this.minPrice = Math.min(value, this.maxPrice - 10000);
+        }
+        else {
+            this.maxPrice = Math.max(value, this.minPrice + 10000);
+        }
+
+        this.isFavoritesActive = false;
+        const favFilter = this.filters.find(f => f.type === 'favorites');
+        if (favFilter) { favFilter.active = false; }
         this.runSearch(0);
     }
+
     updateSliderValue(event: MouseEvent): void {
         const track = document.querySelector('.slider-track') as HTMLElement;
         if (!track) return;
@@ -289,12 +494,19 @@ export class HomeComponent implements OnInit, AfterViewInit {
         const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
         const percentage = x / rect.width;
         const value = Math.round(percentage * (this.maxRange - this.minRange) + this.minRange);
-        if (this.activeHandle === 'min') { this.minPrice = Math.max(this.minRange, Math.min(value, this.maxPrice - 10000)); }
-        else if (this.activeHandle === 'max') { this.maxPrice = Math.min(this.maxRange, Math.max(value, this.minPrice + 10000)); }
+        if (this.activeHandle === 'min') {
+            this.minPrice = Math.max(this.minRange, Math.min(value, this.maxPrice - 10000));
+        }
+        else if (this.activeHandle === 'max') {
+            this.maxPrice = Math.min(this.maxRange, Math.max(value, this.minPrice + 10000));
+        }
     }
+
     getPages(): number[] {
         const pages: number[] = [];
-        for (let i = 1; i <= this.totalPages; i++) { pages.push(i); }
+        for (let i = 1; i <= this.totalPages; i++) {
+            pages.push(i);
+        }
         return pages;
     }
 }

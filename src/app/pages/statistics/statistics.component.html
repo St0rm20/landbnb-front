@@ -8,20 +8,17 @@
         </a>
 
         <div class="nav-right">
-
             <ng-container *ngIf="userRole === 'HOST'">
                 <a class="nav-link host-link" routerLink="/create-place">Crear Alojamiento</a>
                 <a class="nav-link host-link" routerLink="/host-properties">Mis Alojamientos</a>
             </ng-container>
 
             <div class="dropdown">
-
                 <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
                     <i class="fas fa-bars"></i>
                 </a>
 
                 <div class="dropdown-menu" [class.show]="dropdownOpen">
-
                     <h6 class="dropdown-header">Hola, {{ userName || 'Usuario' }}</h6>
 
                     <ng-container *ngIf="userRole === 'HOST'">
@@ -61,46 +58,132 @@
 
 <div class="container-fluid">
     <div class="row pt-5">
+        <!-- Panel lateral del anfitrión -->
         <div class="col-lg-3">
             <div class="sidebar">
                 <h4 class="mb-4">Panel del Anfitrión</h4>
                 <div class="list-group">
-                    <a routerLink="/host-properties" class="list-group-item list-group-item-action">Mis Alojamientos</a>
-                    <a routerLink="/reservations-host" class="list-group-item list-group-item-action">Reservas</a>
-                    <a routerLink="/statistics" class="list-group-item list-group-item-action active">Métricas</a>
+                    <a routerLink="/host-properties"
+                       class="list-group-item list-group-item-action"
+                       routerLinkActive="active"
+                       [routerLinkActiveOptions]="{exact: true}">
+                        <i class="fas fa-home me-2"></i> Mis Alojamientos
+                    </a>
+                    <a routerLink="/reservations-host"
+                       class="list-group-item list-group-item-action"
+                       routerLinkActive="active">
+                        <i class="fas fa-calendar-alt me-2"></i> Reservas
+                    </a>
+                    <a routerLink="/statistics"
+                       class="list-group-item list-group-item-action"
+                       routerLinkActive="active">
+                        <i class="fas fa-chart-line me-2"></i> Métricas
+                    </a>
                 </div>
             </div>
         </div>
-        <div class="col-lg-9 main-content">
-            <h1 class="mb-2 text-white">Métricas y Estadísticas</h1>
-            <p class="lead text-white-50 mb-4">Resumen de rendimiento del último semestre</p>
 
+        <!-- Contenido principal -->
+        <div class="col-lg-9 main-content">
+            <div class="header-section">
+                <h1 class="text-white">Métricas y Estadísticas</h1>
+                <p class="lead text-white-50">Resumen de rendimiento de tus alojamientos</p>
+            </div>
+
+            <!-- Selector de Alojamiento y Fechas -->
+            <div *ngIf="accommodations.length > 0" class="selector-container">
+                <div class="row align-items-end">
+                    <div class="col-md-5">
+                        <label for="accommodationSelect" class="form-label fw-bold">
+                            <i class="fas fa-building me-2"></i>Selecciona un Alojamiento
+                        </label>
+                        <select
+                                id="accommodationSelect"
+                                class="form-select"
+                                [(ngModel)]="selectedAccommodationId"
+                                (change)="onAccommodationChange()">
+                            <option *ngFor="let acc of accommodations" [value]="acc.id">
+                                {{ acc.title }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="startDate" class="form-label fw-bold">Fecha Inicio</label>
+                        <input
+                                type="date"
+                                id="startDate"
+                                class="form-control"
+                                [(ngModel)]="startDate"
+                                (change)="onDateRangeChange()">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="endDate" class="form-label fw-bold">Fecha Fin</label>
+                        <input
+                                type="date"
+                                id="endDate"
+                                class="form-control"
+                                [(ngModel)]="endDate"
+                                (change)="onDateRangeChange()">
+                    </div>
+
+                    <div class="col-md-1">
+                        <button
+                                class="btn btn-primary w-100"
+                                (click)="loadMetrics()"
+                                [disabled]="isLoadingMetrics">
+                            <i class="fas fa-sync-alt" [class.fa-spin]="isLoadingMetrics"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div *ngIf="isLoadingMetrics" class="text-center py-5">
+                <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="text-white mt-3">Cargando métricas...</p>
+            </div>
+
+            <!-- Tarjetas de Métricas -->
             <div *ngIf="metrics && !isLoadingMetrics" class="row">
-                <div class="col-md-4" *ngFor="let metric of displayMetrics">
+                <div class="col-md-4 col-sm-6" *ngFor="let metric of displayMetrics">
                     <div class="metric-card">
-                        <div class="icon"><i [class]="metric.icon"></i></div>
+                        <div class="icon">
+                            <i [class]="metric.icon"></i>
+                        </div>
                         <div class="metric-info">
-                            <h2>{{metric.value}}</h2>
-                            <p>{{metric.label}}</p>
+                            <h2>{{ metric.value }}</h2>
+                            <p>{{ metric.label }}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="chart-container mt-3">
-                <h3 class="text-white mb-4">Ingresos por Mes</h3>
-                <canvas id="ingresosChart"></canvas>
+            <!-- Gráfico de Ingresos -->
+            <div *ngIf="metrics && !isLoadingMetrics" class="chart-container mt-4">
+                <h3 class="text-white mb-4">
+                    <i class="fas fa-chart-area me-2"></i>Ingresos por Mes
+                </h3>
+                <canvas id="ingresosChart" height="80"></canvas>
             </div>
 
+            <!-- Estados Vacíos -->
             <div *ngIf="!metrics && !isLoadingMetrics && accommodations.length > 0" class="empty-state mt-4">
                 <i class="fas fa-chart-line"></i>
-                <h3>Selecciona un alojamiento para ver las métricas.</h3>
+                <h3>Selecciona un alojamiento y rango de fechas para ver las métricas.</h3>
             </div>
+
             <div *ngIf="accommodations.length === 0 && !isLoadingMetrics" class="empty-state mt-4">
                 <i class="fas fa-home"></i>
                 <h3>No tienes alojamientos para generar métricas.</h3>
+                <p class="text-white-50 mt-3">Crea tu primer alojamiento para comenzar a ver estadísticas.</p>
+                <a routerLink="/create-place" class="btn btn-light mt-3">
+                    <i class="fas fa-plus me-2"></i>Crear Alojamiento
+                </a>
             </div>
-
         </div>
     </div>
 </div>
@@ -109,13 +192,21 @@
     <div class="footer-content">
         <div class="footer-section">
             <h5>Acerca de nosotros</h5>
-            <p>Somos unos estudiantes de la Universidad del Quíndio, los cuales están desarrollando un mockup de una página web de alquiler de alojamientos</p>
+            <p>Somos estudiantes de la Universidad del Quindío, desarrollando un mockup de una página web de alquiler de alojamientos.</p>
         </div>
         <div class="footer-section">
             <h5>Enlaces útiles</h5>
             <ul>
                 <li><a href="#!">Soporte</a></li>
                 <li><a href="#!">Términos y condiciones</a></li>
+                <li><a href="#!">Política de privacidad</a></li>
+            </ul>
+        </div>
+        <div class="footer-section">
+            <h5>Contacto</h5>
+            <ul>
+                <li><i class="fas fa-envelope me-2"></i>info@landbnb.com</li>
+                <li><i class="fas fa-phone me-2"></i>+57 300 123 4567</li>
             </ul>
         </div>
     </div>

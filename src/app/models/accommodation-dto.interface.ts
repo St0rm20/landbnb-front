@@ -9,8 +9,10 @@ export interface AccommodationDTO {
     pricePerNight: number;
     maxCapacity: number;
     services: string[];
-    averageRating: number;
-    totalBookings: number;
+
+
     mainImage: string;
     images: string[];
+    averageRating: number;
+    totalBookings: number;
 }

@@ -1,8 +1,9 @@
-import { Component, OnInit, HostListener } from '@angular/core'; // 👈 Aseguramos HostListener
+import { Component, OnInit, HostListener, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import Swal from 'sweetalert2';
+import { Chart, registerables } from 'chart.js';
 
 // Servicios y DTOs
 import { AccommodationService } from '../../services/accommodation-service.service';
@@ -12,6 +13,9 @@ import { ResponseDTO } from '../../models/response-dto.interface';
 import { AccommodationDTO } from '../../models/accommodation-dto.interface';
 import { AccommodationMetricsDTO } from '../../models/accommodation-metrics-dto.interface';
 import { UserDto } from '../../models/user-dto.interface';
+
+// Registrar todos los componentes de Chart.js
+Chart.register(...registerables);
 
 // Tipos para la paginación
 interface PagedResponse {
@@ -31,13 +35,12 @@ interface DisplayMetric {
     standalone: true,
     imports: [CommonModule, RouterModule, FormsModule],
     templateUrl: './statistics.component.html',
-    // Asegúrate de que tienes un archivo statistics.component.css
-    // styleUrls: ['./statistics.component.css']
+    styleUrls: ['./statistics.component.css']
 })
-export class StatisticsComponent implements OnInit {
+export class StatisticsComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // --- Propiedades del Navbar y Auth ---
-    dropdownOpen = false; // 👈 NECESARIA PARA EL ESTADO
+    dropdownOpen = false;
     userName: string = '';
     userEmail: string = '';
     isLoggedIn: boolean = false;
@@ -51,8 +54,11 @@ export class StatisticsComponent implements OnInit {
     displayMetrics: DisplayMetric[] = [];
 
     // --- Control de Fechas ---
-    startDate: string = '2025-01-01';
+    startDate: string = '2024-06-01';
     endDate: string = new Date().toISOString().substring(0, 10);
+
+    // --- Chart.js ---
+    private chart: Chart | null = null;
 
     constructor(
         private accommodationService: AccommodationService,
@@ -73,33 +79,36 @@ export class StatisticsComponent implements OnInit {
 
         this.userEmail = this.tokenService.getEmail();
         this.loadUserProfile();
-
         this.loadHostAccommodations();
     }
 
-    // 1. ✅ MÉTODO PARA CERRAR EL MENÚ AL HACER CLIC FUERA (Lo que previene que se abra instantáneamente)
+    ngAfterViewInit(): void {
+        // El gráfico se creará después de cargar las métricas
+    }
+
+    ngOnDestroy(): void {
+        // Destruir el gráfico cuando se destruya el componente
+        if (this.chart) {
+            this.chart.destroy();
+        }
+    }
+
+    // ===== GESTIÓN DEL DROPDOWN =====
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
-        // Si el clic no está dentro del dropdown, lo cerramos
         if (!target.closest('.dropdown')) {
             this.dropdownOpen = false;
         }
     }
 
-    // 2. ✅ MÉTODO PARA ABRIR/CERRAR EL MENÚ CON EL BOTÓN
     toggleDropdown(event: Event): void {
         event.preventDefault();
-        event.stopPropagation(); // 👈 IMPORTANTE: Evita que 'onDocumentClick' lo cierre inmediatamente
+        event.stopPropagation();
         this.dropdownOpen = !this.dropdownOpen;
     }
 
-
-    // --- (El resto de tus métodos, adaptMetricsForDisplay, loadMetrics, etc., son correctos) ---
-
-    /**
-     * Carga el perfil del usuario para el saludo del Navbar
-     */
+    // ===== CARGA DE DATOS =====
     loadUserProfile(): void {
         this.userService.getProfile().subscribe({
             next: (data: UserDto) => {
@@ -112,9 +121,6 @@ export class StatisticsComponent implements OnInit {
         });
     }
 
-    /**
-     * Carga la lista de alojamientos del anfitrión para el selector
-     */
     loadHostAccommodations(): void {
         this.accommodations = [];
 
@@ -132,6 +138,7 @@ export class StatisticsComponent implements OnInit {
                 }
             },
             error: (err) => {
+                console.error('Error cargando alojamientos:', err);
                 this.accommodations = [];
                 this.metrics = null;
                 Swal.fire('Error', 'No se pudieron cargar tus alojamientos.', 'error');
@@ -139,9 +146,6 @@ export class StatisticsComponent implements OnInit {
         });
     }
 
-    /**
-     * Carga las métricas para el alojamiento y rango de fecha seleccionado
-     */
     loadMetrics(): void {
         if (!this.selectedAccommodationId || !this.startDate || !this.endDate) return;
 
@@ -149,26 +153,40 @@ export class StatisticsComponent implements OnInit {
         this.metrics = null;
         this.displayMetrics = [];
 
+        // Destruir gráfico anterior si existe
+        if (this.chart) {
+            this.chart.destroy();
+            this.chart = null;
+        }
+
         const start = this.startDate;
         const end = this.endDate;
 
         this.accommodationService.getMetrics(this.selectedAccommodationId, start, end).subscribe({
-            next: (data: ResponseDTO) => {
-                this.metrics = data.content as AccommodationMetricsDTO;
+            next: (data: any) => {
+                // El backend puede devolver directamente las métricas o en un wrapper
+                this.metrics = data.content ? data.content as AccommodationMetricsDTO : data as AccommodationMetricsDTO;
+
+                console.log('Métricas recibidas:', this.metrics); // Para debug
+
                 this.adaptMetricsForDisplay();
                 this.isLoadingMetrics = false;
+
+                // Crear el gráfico después de un pequeño delay para asegurar que el DOM esté listo
+                setTimeout(() => this.createRevenueChart(), 100);
             },
             error: (err) => {
+                console.error('Error cargando métricas:', err);
                 this.metrics = null;
                 this.isLoadingMetrics = false;
-                Swal.fire('Error', err.error.message || 'No se pudieron obtener las métricas.', 'error');
+
+                const errorMessage = err.error?.message || err.message || 'No se pudieron obtener las métricas.';
+                Swal.fire('Error', errorMessage, 'error');
             }
         });
     }
 
-    /**
-     * Mapea el DTO del backend al formato de tarjetas del HTML
-     */
+    // ===== TRANSFORMACIÓN DE DATOS =====
     adaptMetricsForDisplay(): void {
         if (!this.metrics) {
             this.displayMetrics = [];
@@ -197,12 +215,148 @@ export class StatisticsComponent implements OnInit {
                 icon: 'fas fa-chart-line',
                 value: m.occupancyRate.toFixed(1) + '%',
                 label: 'Tasa de Ocupación'
+            },
+            {
+                icon: 'fas fa-users',
+                value: this.formatNumber(m.totalGuests),
+                label: 'Total de Huéspedes'
+            },
+            {
+                icon: 'fas fa-dollar-sign',
+                value: this.formatNumber(m.averageBookingValue) + ' COP',
+                label: 'Valor Promedio por Reserva'
             }
         ];
     }
 
+    // ===== CREACIÓN DEL GRÁFICO =====
+    createRevenueChart(): void {
+        const canvas = document.getElementById('ingresosChart') as HTMLCanvasElement;
+        if (!canvas) {
+            console.error('Canvas no encontrado');
+            return;
+        }
 
-    // --- MÉTODOS AUXILIARES Y MANEJO DE EVENTOS ---
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Crear gradiente como en el diseño original
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(185, 116, 121, 0.6)');
+        gradient.addColorStop(1, 'rgba(185, 116, 121, 0.1)');
+
+        // Generar datos de ejemplo para los últimos 6 meses
+        const months = this.generateMonthLabels();
+        const revenueData = this.generateRevenueData();
+
+        this.chart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Ingresos',
+                    data: revenueData,
+                    backgroundColor: gradient,
+                    borderColor: 'rgba(185, 116, 121, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: 'rgba(185, 116, 121, 1)',
+                    pointHoverRadius: 7,
+                    pointRadius: 5,
+                    pointBorderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        padding: 10,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: (context) => {
+                                const value = context.parsed.y;
+                                return `Ingresos: ${this.formatNumber(value || 0)} COP`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.2)'
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            callback: (value) => {
+                                return this.formatNumber(Number(value));
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.7)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ===== GENERACIÓN DE DATOS DE EJEMPLO =====
+    generateMonthLabels(): string[] {
+        const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const result: string[] = [];
+        const currentMonth = new Date().getMonth();
+
+        for (let i = 5; i >= 0; i--) {
+            const monthIndex = (currentMonth - i + 12) % 12;
+            result.push(months[monthIndex]);
+        }
+
+        return result;
+    }
+
+    generateRevenueData(): number[] {
+        if (!this.metrics || !this.metrics.totalRevenue) {
+            return [0, 0, 0, 0, 0, 0];
+        }
+
+        // Distribución simulada de ingresos a lo largo de 6 meses
+        const total = this.metrics.totalRevenue;
+        const baseValue = total / 6;
+
+        return [
+            Math.round(baseValue * 0.8),
+            Math.round(baseValue * 0.9),
+            Math.round(baseValue * 1.1),
+            Math.round(baseValue * 1.2),
+            Math.round(baseValue * 0.95),
+            Math.round(baseValue * 1.05)
+        ];
+    }
+
+    // ===== EVENTOS =====
+    onAccommodationChange(): void {
+        this.loadMetrics();
+    }
+
+    onDateRangeChange(): void {
+        this.loadMetrics();
+    }
 
     logout(event: Event): void {
         event.preventDefault();
@@ -210,7 +364,7 @@ export class StatisticsComponent implements OnInit {
         this.router.navigate(['/login']).then(() => window.location.reload());
     }
 
-    // Formateo de números grandes (implementación robusta)
+    // ===== UTILIDADES =====
     formatNumber(value: number): string {
         if (value === undefined || value === null) return '0';
         return Math.round(value).toLocaleString('es-CO');

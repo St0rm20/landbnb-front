@@ -2,164 +2,275 @@
 
 <nav class="navbar">
     <div class="nav-container">
-        <a class="nav-brand" routerLink="/">
-            <img src="../../../assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
+        <a class="nav-brand" routerLink="/home">
+            <img src="assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
             <span class="brand-name">Landbnb</span>
         </a>
         <div class="nav-right">
+            <ng-container *ngIf="userRole === 'HOST'">
+                <a class="nav-link host-link" routerLink="/create-place">Crear Alojamiento</a>
+                <a class="nav-link host-link" routerLink="/host-properties">Mis Alojamientos</a>
+            </ng-container>
+
             <div class="dropdown">
                 <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
                     <i class="fas fa-bars"></i>
                 </a>
                 <div class="dropdown-menu" [class.show]="dropdownOpen">
-                    <h6 class="dropdown-header">Hola, Carlos Flórez</h6>
+                    <h6 class="dropdown-header">Hola, {{ userName || 'Usuario' }}</h6>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" routerLink="/anfitrion">
+                    <a class="dropdown-item" routerLink="/host-properties">
                         <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
                     </a>
-                    <a class="dropdown-item active-menu" routerLink="/reservas-anfitrion">
+                    <a class="dropdown-item active-menu" routerLink="/reservations-host">
                         <i class="fas fa-calendar-alt"></i>Reservas
                     </a>
-                    <a class="dropdown-item" routerLink="/estadisticas">
+                    <a class="dropdown-item" routerLink="/statistics">
                         <i class="fas fa-chart-line"></i>Métricas
                     </a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" routerLink="/perfil">
+                    <a class="dropdown-item" routerLink="/profile-user">
                         <i class="fas fa-user-edit"></i>Editar Perfil
                     </a>
-                    <a class="dropdown-item" routerLink="/cambiar-contrasena">
+                    <a class="dropdown-item" routerLink="/change-password">
                         <i class="fas fa-key"></i>Cambiar Contraseña
                     </a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item logout" routerLink="/iniciar-sesion">
+                    <a class="dropdown-item logout" href="#" (click)="logout($event)">
                         <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
                     </a>
                 </div>
             </div>
-            <a routerLink="/perfil" class="profile-link">
+            <a routerLink="/profile-user" class="profile-link">
                 <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
             </a>
         </div>
     </div>
 </nav>
 
-<div class="container mt-5 pt-5">
-    <h1 class="mb-4">Gestión de Reservas</h1> <div class="row">
-    <div class="col-12">
-        <ul class="nav nav-tabs">
-            <li class="nav-item">
-                <button
-                        class="nav-link"
-                        [class.active]="activeTab === 'activas'"
-                        (click)="setActiveTab('activas')">
-                    Activas
-                </button>
-            </li>
-            <li class="nav-item">
-                <button
-                        class="nav-link"
-                        [class.active]="activeTab === 'pasadas'"
-                        (click)="setActiveTab('pasadas')">
-                    Pasadas
-                </button>
-            </li>
-            <li class="nav-item">
-                <button
-                        class="nav-link"
-                        [class.active]="activeTab === 'canceladas'"
-                        (click)="setActiveTab('canceladas')">
-                    Canceladas
-                </button>
-            </li>
-        </ul>
-
-        <div class="tab-content pt-3">
-            <div *ngIf="activeTab === 'activas'">
-                <div *ngIf="activeReservations.length === 0" class="empty-state">
-                    <i class="fas fa-calendar-check"></i>
-                    <p>No tienes reservas activas</p>
-                </div>
-
-                <div *ngFor="let reservation of activeReservations" class="reserva-card">
-                    <img [src]="reservation.image" [alt]="reservation.title" class="reserva-img">
-                    <div class="reserva-info">
-                        <h5 class="reserva-title">{{ reservation.title }}</h5>
-                        <p class="reserva-dates">
-                            <i class="fas fa-user"></i>
-                            Huésped: {{ reservation.guestName }}
-                        </p>
-                        <p class="reserva-dates">
-                            <i class="fas fa-calendar"></i>
-                            Fechas: {{ reservation.checkIn }} - {{ reservation.checkOut }}
-                        </p>
-                        <p class="reserva-status">
-                            Estado:
-                            <span class="badge badge-success">{{ reservation.status }}</span>
-                        </p>
-                    </div>
-                    <button class="btn btn-primary" (click)="contactGuest(reservation)">
-                        Contactar Huésped
-                    </button>
+<div class="container-fluid">
+    <div class="row pt-5">
+        <!-- Panel lateral del anfitrión -->
+        <div class="col-lg-3">
+            <div class="sidebar">
+                <h4 class="mb-4">Panel del Anfitrión</h4>
+                <div class="list-group">
+                    <a routerLink="/host-properties"
+                       class="list-group-item list-group-item-action"
+                       routerLinkActive="active"
+                       [routerLinkActiveOptions]="{exact: true}">
+                        <i class="fas fa-home me-2"></i>Mis Alojamientos
+                    </a>
+                    <a routerLink="/reservations-host"
+                       class="list-group-item list-group-item-action"
+                       routerLinkActive="active">
+                        <i class="fas fa-calendar-alt me-2"></i>Reservas
+                    </a>
+                    <a routerLink="/statistics"
+                       class="list-group-item list-group-item-action"
+                       routerLinkActive="active">
+                        <i class="fas fa-chart-line me-2"></i>Métricas
+                    </a>
                 </div>
             </div>
+        </div>
 
-            <div *ngIf="activeTab === 'pasadas'">
-                <div *ngIf="pastReservations.length === 0" class="empty-state">
-                    <i class="fas fa-history"></i>
-                    <p>No tienes reservas pasadas</p>
-                </div>
-
-                <div *ngFor="let reservation of pastReservations" class="reserva-card">
-                    <img [src]="reservation.image" [alt]="reservation.title" class="reserva-img">
-                    <div class="reserva-info">
-                        <h5 class="reserva-title">{{ reservation.title }}</h5>
-                        <p class="reserva-dates">
-                            <i class="fas fa-user"></i>
-                            Huésped: {{ reservation.guestName }}
-                        </p>
-                        <p class="reserva-dates">
-                            <i class="fas fa-calendar"></i>
-                            Fechas: {{ reservation.checkIn }} - {{ reservation.checkOut }}
-                        </p>
-                        <p class="reserva-status">
-                            Estado:
-                            <span class="badge badge-secondary">{{ reservation.status }}</span>
-                        </p>
-                    </div>
-                    <button class="btn btn-primary" (click)="viewReview(reservation)">
-                        Ver Comentario
-                    </button>
-                </div>
+        <!-- Contenido principal -->
+        <div class="col-lg-9 main-content">
+            <div class="header-section">
+                <h1 class="text-white mb-2">Gestión de Reservas</h1>
+                <p class="text-white-50 mb-4">Administra y revisa todas las reservas de tus alojamientos</p>
             </div>
 
-            <div *ngIf="activeTab === 'canceladas'">
-                <div *ngIf="canceledReservations.length === 0" class="empty-state">
-                    <i class="fas fa-ban"></i>
-                    <p>No tienes reservas canceladas</p>
-                </div>
+            <div class="content-wrapper">
+                <div class="tabs-container">
+                    <ul class="nav nav-tabs">
+                        <li class="nav-item">
+                            <button
+                                    class="nav-link"
+                                    [class.active]="activeTab === 'activas'"
+                                    (click)="setActiveTab('activas')">
+                                <i class="fas fa-clock me-2"></i>Activas
+                                <span class="badge-count" *ngIf="activeReservations.length > 0">
+                                    {{ activeReservations.length }}
+                                </span>
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button
+                                    class="nav-link"
+                                    [class.active]="activeTab === 'pasadas'"
+                                    (click)="setActiveTab('pasadas')">
+                                <i class="fas fa-history me-2"></i>Pasadas
+                                <span class="badge-count" *ngIf="pastReservations.length > 0">
+                                    {{ pastReservations.length }}
+                                </span>
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button
+                                    class="nav-link"
+                                    [class.active]="activeTab === 'canceladas'"
+                                    (click)="setActiveTab('canceladas')">
+                                <i class="fas fa-ban me-2"></i>Canceladas
+                                <span class="badge-count" *ngIf="canceledReservations.length > 0">
+                                    {{ canceledReservations.length }}
+                                </span>
+                            </button>
+                        </li>
+                    </ul>
 
-                <div *ngFor="let reservation of canceledReservations" class="reserva-card">
-                    <img [src]="reservation.image" [alt]="reservation.title" class="reserva-img">
-                    <div class="reserva-info">
-                        <h5 class="reserva-title">{{ reservation.title }}</h5>
-                        <p class="reserva-dates">
-                            <i class="fas fa-user"></i>
-                            Huésped: {{ reservation.guestName }}
-                        </p>
-                        <p class="reserva-dates">
-                            <i class="fas fa-calendar"></i>
-                            Fechas: {{ reservation.checkIn }} - {{ reservation.checkOut }}
-                        </p>
-                        <p class="reserva-status">
-                            Estado:
-                            <span class="badge badge-danger">{{ reservation.status }}</span>
-                        </p>
+                    <!-- Loading Spinner -->
+                    <div *ngIf="isLoading" class="loading-container">
+                        <div class="spinner-border text-light" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="text-white mt-3">Cargando reservas...</p>
+                    </div>
+
+                    <div class="tab-content" *ngIf="!isLoading">
+                        <!-- TAB: RESERVAS ACTIVAS -->
+                        <div *ngIf="activeTab === 'activas'" class="tab-pane">
+                            <div *ngIf="activeReservations.length === 0" class="empty-state">
+                                <i class="fas fa-calendar-check"></i>
+                                <h3>No tienes reservas activas</h3>
+                                <p>Todas las reservas confirmadas y pendientes aparecerán aquí.</p>
+                            </div>
+
+                            <div class="reservas-grid" *ngIf="activeReservations.length > 0">
+                                <div *ngFor="let booking of activeReservations" class="reserva-card">
+                                    <div class="reserva-image">
+                                        <img [src]="getImageUrl(booking)" [alt]="booking.accommodation.title" class="reserva-img">
+                                    </div>
+                                    <div class="reserva-content">
+                                        <div class="reserva-header">
+                                            <h5 class="reserva-title">{{ booking.accommodation.title }}</h5>
+                                            <span [class]="'status-badge ' + getStatusBadgeClass(booking.status)">
+                                                {{ getStatusText(booking.status) }}
+                                            </span>
+                                        </div>
+                                        <div class="reserva-info">
+                                            <div class="info-item">
+                                                <i class="fas fa-user"></i>
+                                                <span>{{ booking.user.name }} {{ booking.user.lastName }}</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <i class="fas fa-calendar"></i>
+                                                <span>{{ formatDate(booking.checkInDate) }} - {{ formatDate(booking.checkOutDate) }}</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <i class="fas fa-users"></i>
+                                                <span>{{ booking.numberOfGuests }} huésped{{ booking.numberOfGuests > 1 ? 'es' : '' }}</span>
+                                            </div>
+                                            <div class="info-item price">
+                                                <i class="fas fa-money-bill-wave"></i>
+                                                <span>${{ formatNumber(booking.totalPrice) }} COP</span>
+                                            </div>
+                                        </div>
+                                        <div class="reserva-actions">
+                                            <button class="btn btn-outline-primary" (click)="contactGuest(booking)">
+                                                <i class="fas fa-envelope me-2"></i>Contactar
+                                            </button>
+                                            <button class="btn btn-outline-danger" (click)="cancelBookingAsHost(booking)">
+                                                <i class="fas fa-times me-2"></i>Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB: RESERVAS PASADAS -->
+                        <div *ngIf="activeTab === 'pasadas'" class="tab-pane">
+                            <div *ngIf="pastReservations.length === 0" class="empty-state">
+                                <i class="fas fa-history"></i>
+                                <h3>No tienes reservas pasadas</h3>
+                                <p>Las reservas completadas aparecerán aquí.</p>
+                            </div>
+
+                            <div class="reservas-grid" *ngIf="pastReservations.length > 0">
+                                <div *ngFor="let booking of pastReservations" class="reserva-card">
+                                    <div class="reserva-image">
+                                        <img [src]="getImageUrl(booking)" [alt]="booking.accommodation.title" class="reserva-img">
+                                    </div>
+                                    <div class="reserva-content">
+                                        <div class="reserva-header">
+                                            <h5 class="reserva-title">{{ booking.accommodation.title }}</h5>
+                                            <span [class]="'status-badge ' + getStatusBadgeClass(booking.status)">
+                                                {{ getStatusText(booking.status) }}
+                                            </span>
+                                        </div>
+                                        <div class="reserva-info">
+                                            <div class="info-item">
+                                                <i class="fas fa-user"></i>
+                                                <span>{{ booking.user.name }} {{ booking.user.lastName }}</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <i class="fas fa-calendar"></i>
+                                                <span>{{ formatDate(booking.checkInDate) }} - {{ formatDate(booking.checkOutDate) }}</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <i class="fas fa-users"></i>
+                                                <span>{{ booking.numberOfGuests }} huésped{{ booking.numberOfGuests > 1 ? 'es' : '' }}</span>
+                                            </div>
+                                            <div class="info-item price">
+                                                <i class="fas fa-money-bill-wave"></i>
+                                                <span>${{ formatNumber(booking.totalPrice) }} COP</span>
+                                            </div>
+                                        </div>
+                                        <div class="reserva-actions">
+                                            <button class="btn btn-primary" (click)="viewReview(booking)">
+                                                <i class="fas fa-comment me-2"></i>Ver Detalles
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB: RESERVAS CANCELADAS -->
+                        <div *ngIf="activeTab === 'canceladas'" class="tab-pane">
+                            <div *ngIf="canceledReservations.length === 0" class="empty-state">
+                                <i class="fas fa-ban"></i>
+                                <h3>No tienes reservas canceladas</h3>
+                                <p>Las reservas canceladas aparecerán aquí.</p>
+                            </div>
+
+                            <div class="reservas-grid" *ngIf="canceledReservations.length > 0">
+                                <div *ngFor="let booking of canceledReservations" class="reserva-card">
+                                    <div class="reserva-image">
+                                        <img [src]="getImageUrl(booking)" [alt]="booking.accommodation.title" class="reserva-img">
+                                    </div>
+                                    <div class="reserva-content">
+                                        <div class="reserva-header">
+                                            <h5 class="reserva-title">{{ booking.accommodation.title }}</h5>
+                                            <span [class]="'status-badge ' + getStatusBadgeClass(booking.status)">
+                                                {{ getStatusText(booking.status) }}
+                                            </span>
+                                        </div>
+                                        <div class="reserva-info">
+                                            <div class="info-item">
+                                                <i class="fas fa-user"></i>
+                                                <span>{{ booking.user.name }} {{ booking.user.lastName }}</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <i class="fas fa-calendar"></i>
+                                                <span>{{ formatDate(booking.checkInDate) }} - {{ formatDate(booking.checkOutDate) }}</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <i class="fas fa-users"></i>
+                                                <span>{{ booking.numberOfGuests }} huésped{{ booking.numberOfGuests > 1 ? 'es' : '' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 </div>
 
 <footer class="footer">
