@@ -316,7 +316,11 @@ export class ProfileUserComponent implements OnInit {
 
             const reader = new FileReader();
             reader.onload = (e: any) => {
+                // Actualizar tanto profilePicUrl como userData para que ambas vistas se actualicen
                 this.profilePicUrl = e.target.result;
+                if (this.userData) {
+                    this.userData.profilePictureUrl = e.target.result;
+                }
                 console.log('Imagen seleccionada:', file.name);
             };
             reader.readAsDataURL(file);
