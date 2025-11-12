@@ -1,13 +1,14 @@
 import { Component, HostListener, OnInit } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common'; // <-- CAMBIO 1: Importado DatePipe
-import {Router, RouterModule} from '@angular/router';
+import { CommonModule, DatePipe } from '@angular/common';
+import { Router, RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { UserService } from '../../services/user-service.service';
 import { TokenService } from '../../services/token-service.service';
+import { ImageService } from '../../services/image-service';
 import { UpdateProfileDTO } from '../../models/update-profile-dto.interface';
 import { UserDto } from '../../models/user-dto.interface';
 import Swal from 'sweetalert2';
-import {AccommodationService} from "../../services/accommodation-service.service";
+import { firstValueFrom } from 'rxjs';
 
 @Component({
     selector: 'app-profile-user',
@@ -17,7 +18,7 @@ import {AccommodationService} from "../../services/accommodation-service.service
         RouterModule,
         ReactiveFormsModule
     ],
-    providers: [ DatePipe ], // <-- CAMBIO 2: Añadido DatePipe a los providers
+    providers: [ DatePipe ],
     templateUrl: './profile-user.component.html',
     styleUrls: ['./profile-user.component.css']
 })
@@ -27,15 +28,18 @@ export class ProfileUserComponent implements OnInit {
     profilePicUrl: string = 'assets/imagenes/perfil.png';
     perfilForm: FormGroup;
     isLoading = false;
+    isUploading = false;
     userData: UserDto | null = null;
+    selectedFile: File | null = null;
+    newImageUrl: string | null = null;
 
     constructor(
         private fb: FormBuilder,
         private userService: UserService,
         private tokenService: TokenService,
-        private datePipe: DatePipe ,
-        private router: Router
-
+        private datePipe: DatePipe,
+        private router: Router,
+        private imageService: ImageService
     ) {
         this.perfilForm = this.createForm();
     }
@@ -69,7 +73,7 @@ export class ProfileUserComponent implements OnInit {
                 this.perfilForm.patchValue({
                     name: data.name || '',
                     lastName: data.lastName || '',
-                    phoneNumber: data.phoneNumber || '' ,
+                    phoneNumber: data.phoneNumber || '',
                     bio: data.bio || '',
                     dateBirth: data.dateBirth || ''
                 });
@@ -93,7 +97,7 @@ export class ProfileUserComponent implements OnInit {
         });
     }
 
-    guardarCambios(): void {
+    async guardarCambios(): Promise<void> {
         if (this.perfilForm.invalid) {
             Swal.fire({
                 icon: 'warning',
@@ -104,68 +108,107 @@ export class ProfileUserComponent implements OnInit {
         }
 
         this.isLoading = true;
-console.log('nombre dentro del formulario: ' + this.perfilForm.value.name);
-        // --- INICIO DE LA SOLUCIÓN (TRIM) ---
-        const formValues = this.perfilForm.value;
 
-        // --- INICIO DEL ARREGLO (TS2322: null vs undefined) ---
-
-        // 1. Obtenemos la fecha (puede ser string u objeto Date)
-        const rawDate = formValues.dateBirth;
-
-        // 2. Transformamos la fecha. datePipe.transform devuelve 'string | null'
-        const transformedDate = rawDate ? this.datePipe.transform(rawDate, 'yyyy-MM-dd') : null;
-
-        // 3. Convertimos 'null' a 'undefined' para que coincida con la interfaz UpdateProfileDTO
-        const formattedDate = (transformedDate === null) ? undefined : transformedDate;
-
-        // --- FIN DEL ARREGLO ---
-
-        // 4. Preparamos el DTO "limpiando" cada campo de texto
-        const updateDTO: UpdateProfileDTO = {
-            // Usamos .trim() para quitar espacios al inicio y al final
-            name: formValues.name ? formValues.name.trim() : '',
-            lastName: formValues.lastName ? formValues.lastName.trim() : '',
-            phoneNumber: formValues.phoneNumber ? formValues.phoneNumber.trim() : '',
-            description: formValues.description ? formValues.description.trim() : '',
-            bio: formValues.bio ? formValues.bio.trim() : '',
-
-            dateBirth: formattedDate, // <-- Ahora es 'string | undefined', lo cual es correcto
-
-            photoProfile: this.profilePicUrl !== 'assets/imagenes/perfil.png' ? this.profilePicUrl : undefined
-        };
-
-        // --- FIN DE LA SOLUCIÓN (TRIM) ---
-
-        // Este log ahora mostrará los datos limpios
-        console.log('Enviando este DTO (limpio) al backend:', updateDTO);
-
-        this.userService.updateProfile(updateDTO).subscribe({
-            next: (response) => {
-                this.isLoading = false;
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Éxito!',
-                    text: response.content || 'Perfil actualizado correctamente',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-                this.loadUserProfile();
-            },
-            error: (error) => {
-                console.error('Error al actualizar perfil:', error);
-                this.isLoading = false;
-                let errorMessage = 'No se pudo actualizar el perfil';
-                if (error.error && error.error.content && Array.isArray(error.error.content) && error.error.content.length > 0) {
-                    errorMessage = error.error.content[0].message;
-                }
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error de validación',
-                    text: errorMessage
-                });
+        try {
+            // Si hay una imagen nueva seleccionada, subirla primero
+            if (this.selectedFile) {
+                this.newImageUrl = await this.uploadImage();
             }
+
+            const formValues = this.perfilForm.value;
+
+            // Transformar la fecha
+            const rawDate = formValues.dateBirth;
+            const transformedDate = rawDate ? this.datePipe.transform(rawDate, 'yyyy-MM-dd') : null;
+            const formattedDate = (transformedDate === null) ? undefined : transformedDate;
+
+            // Preparar el DTO con los valores actualizados
+            const updateDTO: UpdateProfileDTO = {
+                name: formValues.name ? formValues.name.trim() : '',
+                lastName: formValues.lastName ? formValues.lastName.trim() : '',
+                phoneNumber: formValues.phoneNumber ? formValues.phoneNumber.trim() : '',
+                description: formValues.description ? formValues.description.trim() : '',
+                bio: formValues.bio ? formValues.bio.trim() : '',
+                dateBirth: formattedDate,
+                // Usar la nueva URL si se subió una imagen, sino mantener la existente
+                photoProfile: this.newImageUrl ||
+                    (this.profilePicUrl !== 'assets/imagenes/perfil.png' ? this.profilePicUrl : undefined)
+            };
+
+            console.log('Enviando este DTO al backend:', updateDTO);
+
+            this.userService.updateProfile(updateDTO).subscribe({
+                next: (response) => {
+                    this.isLoading = false;
+                    this.selectedFile = null;
+                    this.newImageUrl = null;
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Éxito!',
+                        text: response.content || 'Perfil actualizado correctamente',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+
+                    this.loadUserProfile();
+                },
+                error: (error) => {
+                    console.error('Error al actualizar perfil:', error);
+                    this.isLoading = false;
+
+                    let errorMessage = 'No se pudo actualizar el perfil';
+                    if (error.error && error.error.content && Array.isArray(error.error.content) && error.error.content.length > 0) {
+                        errorMessage = error.error.content[0].message;
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de validación',
+                        text: errorMessage
+                    });
+                }
+            });
+
+        } catch (error) {
+            console.error('Error en el proceso de guardado:', error);
+            this.isLoading = false;
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Hubo un problema al guardar los cambios'
+            });
+        }
+    }
+
+    async uploadImage(): Promise<string> {
+        if (!this.selectedFile) {
+            throw new Error('No hay archivo seleccionado para subir.');
+        }
+
+        this.isUploading = true;
+
+        Swal.fire({
+            title: 'Subiendo imagen...',
+            text: 'Por favor, espere.',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
         });
+
+        try {
+            const data = await firstValueFrom(this.imageService.upload(this.selectedFile));
+            const uploadedUrl: string = data.content.url;
+
+            Swal.close();
+            this.isUploading = false;
+
+            return uploadedUrl;
+        } catch (error) {
+            console.error("Error subiendo imagen:", error);
+            this.isUploading = false;
+            Swal.fire('Error', 'No se pudo subir la imagen', 'error');
+            throw error;
+        }
     }
 
     onFotoSelected(event: any): void {
@@ -190,10 +233,14 @@ console.log('nombre dentro del formulario: ' + this.perfilForm.value.name);
                 return;
             }
 
+            // Guardar el archivo para subirlo después
+            this.selectedFile = file;
+
+            // Mostrar preview local
             const reader = new FileReader();
             reader.onload = (e: any) => {
                 this.profilePicUrl = e.target.result;
-                console.log('Imagen cargada:', file.name);
+                console.log('Imagen seleccionada:', file.name);
             };
             reader.readAsDataURL(file);
         }
@@ -215,7 +262,6 @@ console.log('nombre dentro del formulario: ' + this.perfilForm.value.name);
 
     get f() { return this.perfilForm.controls; }
 
-    // Métodos helper para mostrar los datos del usuario
     getUserFullName(): string {
         if (!this.userData) return 'Usuario';
         return `${this.userData.name} ${this.userData.lastName || ''}`.trim();
