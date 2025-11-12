@@ -60,19 +60,27 @@
                             <label class="form-label">Fecha de nacimiento</label>
                             <input type="date" class="form-control date-input" formControlName="birthDate"
                                    [class.is-invalid]="submitted && f['birthDate'].errors">
-                            <div *ngIf="submitted && f['birthDate'].errors?.['required']" class="invalid-feedback">
-                                La fecha es requerida
+                            <div *ngIf="submitted && f['birthDate'].errors" class="invalid-feedback">
+                                <span *ngIf="f['birthDate'].errors?.['required']">La fecha es requerida</span>
+                                <span *ngIf="f['birthDate'].errors?.['underAge']">Debes ser mayor de 18 años</span>
                             </div>
                         </div>
 
                         <div class="form-column">
                             <label class="form-label">Contraseña</label>
                             <input type="password" class="form-control" formControlName="password"
-                                   [class.is-invalid]="submitted && f['password'].errors">
+                                   [class.is-invalid]="submitted && f['password'].errors"
+                                   placeholder="Mínimo 8 caracteres con mayúscula, minúscula, número y carácter especial">
                             <div *ngIf="submitted && f['password'].errors" class="invalid-feedback">
                                 <span *ngIf="f['password'].errors?.['required']">Contraseña requerida</span>
                                 <span *ngIf="f['password'].errors?.['minlength']">Mínimo 8 caracteres</span>
+                                <span *ngIf="f['password'].errors?.['uppercase']">Debe contener al menos una mayúscula</span>
+                                <span *ngIf="f['password'].errors?.['lowercase']">Debe contener al menos una minúscula</span>
+                                <span *ngIf="f['password'].errors?.['number']">Debe contener al menos un número</span>
                             </div>
+                            <small class="form-text">
+                                La contraseña debe tener al menos 8 caracteres, incluyendo una mayúscula, una minúscula y un número
+                            </small>
                         </div>
                     </div>
 

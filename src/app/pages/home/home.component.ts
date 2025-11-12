@@ -2,8 +2,8 @@ import { Component, OnInit, AfterViewInit, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 
-// Servicios y DTOs
 import { AccommodationService } from '../../services/accommodation-service.service';
 import { TokenService } from '../../services/token-service.service';
 import { UserService} from '../../services/user-service.service';
@@ -18,26 +18,12 @@ interface Filter {
     icon: string;
     active: boolean;
     type: string;
-    serviceName: string; // 👈 Nombre exacto del servicio que buscará
+    serviceName: string;
 }
 
 interface PagedResponse {
     content: AccommodationDTO[];
     totalPages: number;
-}
-
-interface AccommodationSimpleDto {
-    id: number;
-    title: string;
-    description: string;
-    city: string;
-    address: string;
-    latitude: number;
-    longitude: number;
-    pricePerNight: number;
-    maxCapacity: number;
-    services: string[];
-    url: string;
 }
 
 @Component({
@@ -69,7 +55,6 @@ export class HomeComponent implements OnInit, AfterViewInit {
     lastSearchDTO: SearchAccommodationDTO = {};
     numberOfGuests: number = 1;
 
-    // 👇 FILTROS CON NOMBRES EXACTOS EN ESPAÑOL
     filters: Filter[] = [
         { name: 'Favoritos', icon: 'fas fa-heart', active: false, type: 'favorites', serviceName: '' },
         { name: 'WiFi', icon: 'fas fa-wifi', active: false, type: 'service', serviceName: 'WiFi' },
@@ -86,33 +71,60 @@ export class HomeComponent implements OnInit, AfterViewInit {
     userName: string = '';
     userEmail: string = '';
     userRole: string = '';
+    profilePicUrl: string = 'assets/imagenes/perfil.png';
 
     constructor(
         private accommodationService: AccommodationService,
         private tokenService: TokenService,
         private userService: UserService,
-        private router: Router
+        private router: Router,
+        private sanitizer: DomSanitizer
     ) {}
 
     ngOnInit(): void {
         this.initializeDates();
         this.loadInitialAccommodations(0);
+        this.checkAuthentication();
+    }
+
+    ngAfterViewInit(): void { }
+
+    checkAuthentication(): void {
         this.isLoggedIn = this.tokenService.isLogged();
         if (this.isLoggedIn) {
             this.userEmail = this.tokenService.getEmail();
             this.userRole = this.tokenService.getRole();
             this.loadUserProfile();
+        } else {
+            this.userName = '';
+            this.userEmail = '';
+            this.userRole = '';
+            this.profilePicUrl = 'assets/imagenes/perfil.png';
         }
     }
 
-    ngAfterViewInit(): void { }
+    get isHost(): boolean {
+        return this.userRole === 'HOST';
+    }
+
+    get isUser(): boolean {
+        return this.userRole === 'USER';
+    }
 
     loadUserProfile(): void {
         this.userService.getProfile().subscribe({
-            next: (data: UserDto) => { this.userName = data.name; },
+            next: (data: UserDto) => {
+                this.userName = data.name;
+                if (data.profilePictureUrl) {
+                    this.profilePicUrl = this.fixCloudinaryUrl(data.profilePictureUrl);
+                } else {
+                    this.profilePicUrl = 'assets/imagenes/perfil.png';
+                }
+            },
             error: (error: any) => {
                 console.error("Error cargando perfil del usuario", error);
                 this.userName = '';
+                this.profilePicUrl = 'assets/imagenes/perfil.png';
             }
         });
     }
@@ -123,40 +135,84 @@ export class HomeComponent implements OnInit, AfterViewInit {
         this.router.navigate(['/login']).then(() => window.location.reload());
     }
 
+    private processAccommodationData(accommodation: any): AccommodationDTO {
+        let mainImageUrl = accommodation.mainImage;
+        let allImages: string[] = accommodation.images || [];
+
+        if (mainImageUrl) {
+            mainImageUrl = this.fixCloudinaryUrl(mainImageUrl);
+        }
+        allImages = allImages.map(img => this.fixCloudinaryUrl(img));
+
+        return {
+            id: accommodation.id,
+            title: accommodation.title || 'Sin título',
+            description: accommodation.description || 'Sin descripción',
+            city: accommodation.city || 'Ciudad no especificada',
+            address: accommodation.address || 'Dirección no especificada',
+            latitude: accommodation.latitude || 0,
+            longitude: accommodation.longitude || 0,
+            pricePerNight: accommodation.pricePerNight || 0,
+            maxCapacity: accommodation.maxCapacity || 1,
+            services: accommodation.services || [],
+            mainImage: mainImageUrl,
+            images: allImages,
+            averageRating: accommodation.averageRating || 0,
+            totalBookings: accommodation.totalBookings || 0
+        };
+    }
+
     loadInitialAccommodations(page: number): void {
         this.isSearchActive = false;
         this.isFavoritesActive = false;
         this.accommodationService.getAll(page).subscribe({
             next: (data: any) => {
-                this.properties = (data.content || []).map((simpleDto: AccommodationSimpleDto) => {
-                    return {
-                        id: simpleDto.id,
-                        title: simpleDto.title,
-                        description: simpleDto.description,
-                        city: simpleDto.city,
-                        address: simpleDto.address,
-                        latitude: simpleDto.latitude,
-                        longitude: simpleDto.longitude,
-                        pricePerNight: simpleDto.pricePerNight,
-                        maxCapacity: simpleDto.maxCapacity,
-                        services: simpleDto.services,
-                        mainImage: simpleDto.url,
-                        images: [simpleDto.url],
-                        averageRating: 0,
-                        totalBookings: 0
-                    };
-                });
+                this.properties = (data.content || []).map((accommodation: any) =>
+                    this.processAccommodationData(accommodation)
+                );
 
-                this.filteredProperties = this.properties;
+                this.filteredProperties = [...this.properties];
                 this.totalPages = data?.totalPages || 1;
                 this.currentPage = page + 1;
             },
             error: (error: any) => {
+                console.error('Error al obtener alojamientos:', error);
                 this.properties = [];
                 this.filteredProperties = [];
-                Swal.fire('Error', error.error.content || "Error al obtener los alojamientos", 'error');
+                Swal.fire('Error', error.error?.content || "Error al obtener los alojamientos", 'error');
             }
         });
+    }
+
+    private fixCloudinaryUrl(url: string | null | undefined): string {
+        if (!url || url.trim() === '' || url === 'null' || url === 'undefined') {
+            return '';
+        }
+
+        if (url.startsWith('https://')) {
+            return url;
+        }
+
+        if (url.includes('cloudinary.com') && url.startsWith('http://')) {
+            return url.replace('http://', 'https://');
+        }
+
+        if (url.startsWith('http://') && !url.includes('localhost')) {
+            return url.replace('http://', 'https://');
+        }
+
+        if (url.includes('cloudinary.com') && !url.startsWith('http')) {
+            return 'https://' + url;
+        }
+
+        return url;
+    }
+
+    handleImageError(event: Event): void {
+        const imgElement = event.target as HTMLImageElement;
+        const fallbackImage = 'assets/imagenes/default-property.jpg';
+        imgElement.src = fallbackImage;
+        imgElement.onerror = null;
     }
 
     loadFavorites(page: number): void {
@@ -165,28 +221,26 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
         this.accommodationService.getFavoriteAccommodations(page).subscribe({
             next: (data: any) => {
-                this.properties = (data.content || []).map((simpleDto: AccommodationSimpleDto) => ({
-                    id: simpleDto.id,
-                    title: simpleDto.title,
-                    description: simpleDto.description,
-                    city: simpleDto.city,
-                    address: simpleDto.address,
-                    latitude: simpleDto.latitude,
-                    longitude: simpleDto.longitude,
-                    pricePerNight: simpleDto.pricePerNight,
-                    maxCapacity: simpleDto.maxCapacity,
-                    services: simpleDto.services,
-                    mainImage: simpleDto.url,
-                    images: [simpleDto.url],
-                    averageRating: 0,
-                    totalBookings: 0
-                }));
+                this.properties = (data.content || []).map((accommodation: any) =>
+                    this.processAccommodationData(accommodation)
+                );
 
-                this.filteredProperties = this.properties;
+                this.filteredProperties = [...this.properties];
                 this.totalPages = data?.totalPages || 1;
                 this.currentPage = page + 1;
+
+                if (this.properties.length === 0) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Sin favoritos',
+                        text: 'No tienes alojamientos marcados como favoritos',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
             },
             error: (err) => {
+                console.error('Error cargando favoritos:', err);
                 this.properties = [];
                 this.filteredProperties = [];
                 Swal.fire('Error', 'No se pudieron cargar tus favoritos', 'error');
@@ -194,9 +248,6 @@ export class HomeComponent implements OnInit, AfterViewInit {
         });
     }
 
-    /**
-     * 👇 BÚSQUEDA: Primero busca en el backend, luego filtra localmente por servicios en español
-     */
     runSearch(page: number): void {
         this.validateDates();
         if (this.dateError) {
@@ -207,7 +258,6 @@ export class HomeComponent implements OnInit, AfterViewInit {
         this.isSearchActive = true;
         this.isFavoritesActive = false;
 
-        // Construir DTO básico sin servicios
         const searchDTO: any = {
             city: this.searchDestination || undefined,
             checkIn: this.checkinDate || undefined,
@@ -219,30 +269,13 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
         this.lastSearchDTO = searchDTO;
 
-        console.log('DTO de búsqueda enviado al backend:', searchDTO);
-
         this.accommodationService.search(page, searchDTO).subscribe({
             next: (data: any) => {
-                console.log('Respuesta de búsqueda:', data);
-                this.properties = data?.content || [];
+                this.properties = (data?.content || []).map((accommodation: any) =>
+                    this.processAccommodationData(accommodation)
+                );
 
-                // 👇 FILTRADO LOCAL POR SERVICIOS EN ESPAÑOL
-                const activeServices = this.filters
-                    .filter(f => f.type === 'service' && f.active && f.serviceName)
-                    .map(f => f.serviceName);
-
-                if (activeServices.length > 0) {
-                    console.log('Filtrando por servicios:', activeServices);
-                    this.filteredProperties = this.properties.filter(property => {
-                        // Verificar que el alojamiento tenga TODOS los servicios seleccionados
-                        return activeServices.every(service =>
-                            property.services && property.services.includes(service)
-                        );
-                    });
-                    console.log('Resultados filtrados:', this.filteredProperties.length);
-                } else {
-                    this.filteredProperties = this.properties;
-                }
+                this.applyServiceFilters();
 
                 this.totalPages = data?.totalPages || 1;
                 this.currentPage = page + 1;
@@ -261,12 +294,35 @@ export class HomeComponent implements OnInit, AfterViewInit {
                 console.error('Error en búsqueda:', error);
                 this.properties = [];
                 this.filteredProperties = [];
-                Swal.fire('Error', error.error.content || "Error al buscar alojamientos", 'error');
+                Swal.fire('Error', error.error?.content || "Error al buscar alojamientos", 'error');
             }
         });
     }
 
-    // --- MÉTODOS DE EVENTOS ---
+    applyServiceFilters(): void {
+        const activeServices = this.filters
+            .filter(f => f.type === 'service' && f.active && f.serviceName)
+            .map(f => f.serviceName);
+
+        if (activeServices.length > 0) {
+            this.filteredProperties = this.properties.filter(property => {
+                const hasAllServices = activeServices.every(service =>
+                    property.services &&
+                    Array.isArray(property.services) &&
+                    property.services.some(propService =>
+                        this.normalizeServiceName(propService) === this.normalizeServiceName(service)
+                    )
+                );
+                return hasAllServices;
+            });
+        } else {
+            this.filteredProperties = [...this.properties];
+        }
+    }
+
+    private normalizeServiceName(service: string): string {
+        return service.toLowerCase().trim().replace(/\s+/g, ' ');
+    }
 
     searchProperties(): void {
         if (this.isFavoritesActive) {
@@ -277,8 +333,6 @@ export class HomeComponent implements OnInit, AfterViewInit {
     }
 
     toggleFilter(filter: Filter): void {
-        console.log('Toggle filter:', filter);
-
         if (filter.type === 'favorites') {
             this.isFavoritesActive = !this.isFavoritesActive;
             filter.active = this.isFavoritesActive;
@@ -306,7 +360,11 @@ export class HomeComponent implements OnInit, AfterViewInit {
                 favFilter.active = false;
             }
 
-            this.runSearch(0);
+            if (this.isSearchActive || this.properties.length > 0) {
+                this.applyServiceFilters();
+            } else {
+                this.runSearch(0);
+            }
         }
     }
 
@@ -319,6 +377,8 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
         if (this.searchDestination.trim()) {
             this.runSearch(0);
+        } else {
+            this.loadInitialAccommodations(0);
         }
     }
 
@@ -359,7 +419,6 @@ export class HomeComponent implements OnInit, AfterViewInit {
         return this.filters.filter(f => f.active && f.type !== 'favorites').length;
     }
 
-    // --- MÉTODOS AUXILIARES ---
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
@@ -512,7 +571,11 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
     getPages(): number[] {
         const pages: number[] = [];
-        for (let i = 1; i <= this.totalPages; i++) {
+        const maxPagesToShow = 5;
+        const startPage = Math.max(1, this.currentPage - Math.floor(maxPagesToShow / 2));
+        const endPage = Math.min(this.totalPages, startPage + maxPagesToShow - 1);
+
+        for (let i = startPage; i <= endPage; i++) {
             pages.push(i);
         }
         return pages;

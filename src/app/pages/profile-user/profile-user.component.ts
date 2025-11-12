@@ -4,7 +4,7 @@ import { Router, RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { UserService } from '../../services/user-service.service';
 import { TokenService } from '../../services/token-service.service';
-import { ImageService } from '../../services/image-service'; // Asegúrate de importar tu servicio
+import { ImageService } from '../../services/image-service';
 import { UpdateProfileDTO } from '../../models/update-profile-dto.interface';
 import { UserDto } from '../../models/user-dto.interface';
 import Swal from 'sweetalert2';
@@ -33,6 +33,12 @@ export class ProfileUserComponent implements OnInit {
     selectedFile: File | null = null;
     newImageUrl: string | null = null;
 
+    // Propiedades para la navbar
+    isLoggedIn: boolean = false;
+    userName: string = '';
+    userEmail: string = '';
+    userRole: string = '';
+
     constructor(
         private fb: FormBuilder,
         private userService: UserService,
@@ -45,7 +51,39 @@ export class ProfileUserComponent implements OnInit {
     }
 
     ngOnInit(): void {
+        this.checkAuthentication();
         this.loadUserProfile();
+    }
+
+    /**
+     * Verifica la autenticación y carga los datos del usuario
+     */
+    checkAuthentication(): void {
+        this.isLoggedIn = this.tokenService.isLogged();
+        if (this.isLoggedIn) {
+            this.userEmail = this.tokenService.getEmail();
+            this.userRole = this.tokenService.getRole();
+        } else {
+            this.userName = '';
+            this.userEmail = '';
+            this.userRole = '';
+            // Redirigir al login si no está autenticado
+            this.router.navigate(['/login']);
+        }
+    }
+
+    /**
+     * Verifica si el usuario es anfitrión
+     */
+    get isHost(): boolean {
+        return this.userRole === 'HOST';
+    }
+
+    /**
+     * Verifica si el usuario es usuario regular
+     */
+    get isUser(): boolean {
+        return this.userRole === 'USER';
     }
 
     createForm(): FormGroup {
@@ -62,7 +100,7 @@ export class ProfileUserComponent implements OnInit {
     // Validador personalizado para edad mínima de 18 años
     ageValidator(control: any) {
         if (!control.value) {
-            return null; // Si no hay valor, no validamos
+            return null;
         }
 
         const birthDate = new Date(control.value);
@@ -70,7 +108,6 @@ export class ProfileUserComponent implements OnInit {
         let age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
 
-        // Ajustar la edad si aún no ha cumplido años este año
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
             age--;
         }
@@ -84,26 +121,30 @@ export class ProfileUserComponent implements OnInit {
         this.userService.getProfile().subscribe({
             next: (data: UserDto) => {
                 this.userData = data;
+                this.userName = data.name || '';
 
                 if (data.profilePictureUrl) {
                     this.profilePicUrl = data.profilePictureUrl;
                 }
 
-                // Formatear la fecha antes de cargarla
-                // El backend puede enviar 'dateOfBirth' o 'dateBirth'
                 const birthDate = (data as any).dateOfBirth || data.dateBirth;
                 let formattedDate = '';
 
                 if (birthDate) {
-                    // La fecha viene como "2005-11-16" del backend
-                    formattedDate = birthDate.split('T')[0]; // Por si viene con hora
+                    formattedDate = birthDate.split('T')[0];
+                }
+
+                // Si el usuario no es anfitrión, limpiar la biografía
+                let bioValue = data.bio || '';
+                if (!this.isHost && bioValue) {
+                    bioValue = ''; // Limpiar biografía para usuarios regulares
                 }
 
                 this.perfilForm.patchValue({
                     name: data.name || '',
                     lastName: data.lastName || '',
                     phoneNumber: data.phoneNumber || '',
-                    bio: data.bio || '',
+                    bio: bioValue,
                     dateBirth: formattedDate
                 });
 
@@ -124,6 +165,7 @@ export class ProfileUserComponent implements OnInit {
 
                 if (error.status === 401 || error.status === 403) {
                     this.tokenService.logout();
+                    this.router.navigate(['/login']);
                 }
             }
         });
@@ -131,7 +173,6 @@ export class ProfileUserComponent implements OnInit {
 
     async guardarCambios(): Promise<void> {
         if (this.perfilForm.invalid) {
-            // Verificar si el error es por edad menor de 18
             if (this.perfilForm.get('dateBirth')?.hasError('underAge')) {
                 Swal.fire({
                     icon: 'warning',
@@ -152,27 +193,23 @@ export class ProfileUserComponent implements OnInit {
         this.isLoading = true;
 
         try {
-            // Si hay una imagen nueva seleccionada, subirla primero
             if (this.selectedFile) {
                 this.newImageUrl = await this.uploadImage();
             }
 
             const formValues = this.perfilForm.value;
-
-            // Transformar la fecha
             const rawDate = formValues.dateBirth;
             const transformedDate = rawDate ? this.datePipe.transform(rawDate, 'yyyy-MM-dd') : null;
             const formattedDate = (transformedDate === null) ? undefined : transformedDate;
 
-            // Preparar el DTO con los valores actualizados
             const updateDTO: UpdateProfileDTO = {
                 name: formValues.name ? formValues.name.trim() : '',
                 lastName: formValues.lastName ? formValues.lastName.trim() : '',
                 phoneNumber: formValues.phoneNumber ? formValues.phoneNumber.trim() : '',
                 description: formValues.description ? formValues.description.trim() : '',
-                bio: formValues.bio ? formValues.bio.trim() : '',
+                // Solo enviar biografía si el usuario es anfitrión
+                bio: this.isHost ? (formValues.bio ? formValues.bio.trim() : '') : '',
                 dateBirth: formattedDate,
-                // Usar la nueva URL si se subió una imagen, sino mantener la existente
                 photoProfile: this.newImageUrl ||
                     (this.profilePicUrl !== 'assets/imagenes/perfil.png' ? this.profilePicUrl : undefined)
             };
@@ -275,10 +312,8 @@ export class ProfileUserComponent implements OnInit {
                 return;
             }
 
-            // Guardar el archivo para subirlo después
             this.selectedFile = file;
 
-            // Mostrar preview local
             const reader = new FileReader();
             reader.onload = (e: any) => {
                 this.profilePicUrl = e.target.result;
@@ -286,6 +321,15 @@ export class ProfileUserComponent implements OnInit {
             };
             reader.readAsDataURL(file);
         }
+    }
+
+    /**
+     * Cierra sesión del usuario
+     */
+    logout(event: Event): void {
+        event.preventDefault();
+        this.tokenService.logout();
+        this.router.navigate(['/login']).then(() => window.location.reload());
     }
 
     @HostListener('document:click', ['$event'])
@@ -326,23 +370,21 @@ export class ProfileUserComponent implements OnInit {
     }
 
     protected getUserBio() {
-        return this.userData?.bio || '';
+        // Para usuarios regulares, no devolver biografía
+        return this.isHost ? (this.userData?.bio || '') : '';
     }
 
     protected getProfilePicUrl() {
         return this.userData?.profilePictureUrl || this.profilePicUrl;
     }
 
-    // Método para formatear la fecha para el input type="date"
     private formatDateForInput(dateString: string): string {
         if (!dateString) return '';
 
-        // Si ya viene en formato yyyy-MM-dd, devolverla tal cual
         if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
             return dateString;
         }
 
-        // Si viene en otro formato, convertirla
         const date = new Date(dateString);
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');

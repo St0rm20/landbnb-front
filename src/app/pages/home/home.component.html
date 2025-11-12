@@ -11,14 +11,14 @@
 
             <ng-container *ngIf="isLoggedIn">
 
-                <a *ngIf="userRole === 'USER'" class="nav-link host-link" routerLink="/become-host">
+                <a *ngIf="isUser" class="nav-link host-link" routerLink="/become-host">
                     Conviértete en anfitrión
                 </a>
 
-                <a *ngIf="userRole === 'HOST'" class="nav-link host-link" routerLink="/create-place">
+                <a *ngIf="isHost" class="nav-link host-link" routerLink="/create-place">
                     Crear Alojamiento
                 </a>
-                <a *ngIf="userRole === 'HOST'" class="nav-link host-link" routerLink="/host-properties">
+                <a *ngIf="isHost" class="nav-link host-link" routerLink="/host-properties">
                     Mis Alojamientos
                 </a>
 
@@ -30,7 +30,7 @@
 
                         <h6 class="dropdown-header">Hola, {{ userName || userEmail }}</h6>
 
-                        <ng-container *ngIf="userRole === 'HOST'">
+                        <ng-container *ngIf="isHost">
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" routerLink="/host-properties">
                                 <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
@@ -60,8 +60,9 @@
                         </a>
                     </div>
                 </div>
+                <!-- Imagen de perfil actualizada -->
                 <a routerLink="/profile-user" class="profile-link">
-                    <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
+                    <img [src]="profilePicUrl" alt="Perfil" class="profile-img">
                 </a>
             </ng-container>
 
@@ -75,6 +76,7 @@
     </div>
 </nav>
 
+<!-- Hero Section -->
 <div class="container hero-section">
     <h1 class="hero-title">Encuentra tu próximo destino</h1>
     <p class="hero-subtitle">Explora alojamientos únicos y vive experiencias inolvidables.</p>
@@ -136,6 +138,7 @@
     </div>
 </div>
 
+<!-- Properties Section -->
 <div class="container properties-section">
     <div class="filters">
         <div *ngFor="let filter of filters"
@@ -151,7 +154,12 @@
         <div *ngFor="let property of filteredProperties" class="property-card">
             <a [routerLink]="['/detalle-alojamiento', property.id]" class="card-link">
                 <div class="card">
-                    <img [src]="property.mainImage" [alt]="property.title" class="card-image">
+                    <img
+                            [src]="property.mainImage"
+                            [alt]="property.title"
+                            class="card-image"
+                            (error)="handleImageError($event)"
+                            loading="lazy">
                     <div class="card-content">
                         <h3 class="card-title">{{property.title}}</h3>
                         <p class="card-location">{{property.description}}</p>
@@ -169,6 +177,14 @@
         </div>
     </div>
 
+    <!-- No Results Message -->
+    <div *ngIf="filteredProperties.length === 0 && properties.length > 0" class="no-results">
+        <i class="fas fa-search"></i>
+        <h3>No se encontraron resultados</h3>
+        <p>Intenta ajustar tus filtros de búsqueda</p>
+    </div>
+
+    <!-- Pagination -->
     <div class="pagination" *ngIf="totalPages > 1">
         <button class="page-btn" [class.disabled]="currentPage === 1"
                 (click)="changePage(currentPage - 1)">

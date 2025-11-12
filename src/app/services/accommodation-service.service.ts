@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ResponseDTO } from '../models/response-dto.interface';
+import { tap } from 'rxjs/operators';
 import { CreateAccommodationDTO } from '../models/create-accommodation-dto.interface';
 import { UpdateAccommodationDTO } from '../models/update-accommodation-dto.interface';
 import { SearchAccommodationDTO } from '../models/search-accommodation-dto.interface';
@@ -19,12 +20,28 @@ export class AccommodationService {
     constructor(private http: HttpClient) { }
 
     /**
-     * (Punto 1) Get All Accommodations (Public)
-     * Devuelve: Page<AccommodationDto>
+     * (Punto 1) Get All Accommodations (Public) - CON IMÁGENES
+     * Usa el endpoint de búsqueda para obtener AccommodationDetailDto con imágenes
      */
     public getAll(page: number): Observable<any> {
         const params = new HttpParams().set('page', page.toString());
-        return this.http.get<any>(this.accommodationURL, { params });
+        console.log('🔄 [SERVICE] Solicitando alojamientos CON imágenes...');
+
+        // Envía una búsqueda vacía para obtener todos los alojamientos
+        const emptySearch: SearchAccommodationDTO = {};
+
+        return this.http.post<any>(`${this.accommodationURL}/search`, emptySearch, { params }).pipe(
+            tap(response => {
+                console.log('[SERVICE] Respuesta con imágenes:', response);
+                if (response.content && response.content.length > 0) {
+                    console.log(' Primera propiedad con imágenes:', {
+                        title: response.content[0].title,
+                        mainImage: response.content[0].mainImage,
+                        images: response.content[0].images
+                    });
+                }
+            })
+        );
     }
 
     /**
@@ -157,4 +174,5 @@ export class AccommodationService {
     public getHostAccommodation(id: number): Observable<ResponseDTO> {
         return this.http.get<ResponseDTO>(`${this.accommodationURL}/host/${id}`);
     }
+
 }

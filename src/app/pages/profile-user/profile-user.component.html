@@ -2,44 +2,81 @@
 
 <nav class="navbar">
     <div class="nav-container">
-        <a class="nav-brand" routerLink="/">
-            <img src="assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
+        <a class="nav-brand" routerLink="/home">
+            <img src="../../../assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
             <span class="brand-name">Landbnb</span>
         </a>
+
         <div class="nav-right">
-            <a class="nav-link host-link" routerLink="/crear-alojamiento">Conviértete en anfitrión</a>
-            <div class="dropdown">
-                <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
-                    <i class="fas fa-bars"></i>
+
+            <ng-container *ngIf="isLoggedIn">
+
+                <!-- Opciones para USUARIOS REGULARES -->
+                <a *ngIf="isUser" class="nav-link host-link" routerLink="/become-host">
+                    Conviértete en anfitrión
                 </a>
-                <div class="dropdown-menu" [class.show]="dropdownOpen">
-                    <h6 class="dropdown-header">Hola, {{ getUserFullName() }}</h6>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" routerLink="/anfitrion">
-                        <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
+
+                <!-- Opciones para ANFITRIONES -->
+                <a *ngIf="isHost" class="nav-link host-link" routerLink="/create-place">
+                    Crear Alojamiento
+                </a>
+                <a *ngIf="isHost" class="nav-link host-link" routerLink="/host-properties">
+                    Mis Alojamientos
+                </a>
+
+                <!-- Menú desplegable -->
+                <div class="dropdown">
+                    <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
+                        <i class="fas fa-bars"></i>
                     </a>
-                    <a class="dropdown-item" routerLink="/reservas-anfitrion">
-                        <i class="fas fa-calendar-alt"></i>Reservas
-                    </a>
-                    <a class="dropdown-item" routerLink="/estadisticas">
-                        <i class="fas fa-chart-line"></i>Métricas
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item active-menu" routerLink="/perfil">
-                        <i class="fas fa-user-edit"></i>Editar Perfil
-                    </a>
-                    <a class="dropdown-item" routerLink="/cambiar-contrasena">
-                        <i class="fas fa-key"></i>Cambiar Contraseña
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item logout" routerLink="/iniciar-sesion">
-                        <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
-                    </a>
+                    <div class="dropdown-menu" [class.show]="dropdownOpen">
+                        <h6 class="dropdown-header">Hola, {{ getUserFullName() }}</h6>
+
+                        <!-- Sección solo para ANFITRIONES -->
+                        <ng-container *ngIf="isHost">
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" routerLink="/host-properties">
+                                <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
+                            </a>
+                            <a class="dropdown-item" routerLink="/reservations-host">
+                                <i class="fas fa-calendar-alt"></i>Reservas
+                            </a>
+                            <a class="dropdown-item" routerLink="/statistics">
+                                <i class="fas fa-chart-line"></i>Métricas
+                            </a>
+                        </ng-container>
+
+                        <!-- Opciones para TODOS los usuarios logueados -->
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item active-menu" routerLink="/profile-user">
+                            <i class="fas fa-user-edit"></i>Editar Perfil
+                        </a>
+                        <a class="dropdown-item" routerLink="/change-password">
+                            <i class="fas fa-key"></i>Cambiar Contraseña
+                        </a>
+                        <a class="dropdown-item" routerLink="/reservations-history">
+                            <i class="fas fa-calendar-check"></i>Mis Reservas
+                        </a>
+
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item logout" href="#" (click)="logout($event)">
+                            <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
+                        </a>
+                    </div>
                 </div>
-            </div>
-            <a routerLink="/perfil" class="profile-link">
-                <img [src]="profilePicUrl" alt="Perfil" class="profile-img">
-            </a>
+
+                <!-- Imagen de perfil -->
+                <a routerLink="/profile-user" class="profile-link">
+                    <img [src]="profilePicUrl" alt="Perfil" class="profile-img">
+                </a>
+            </ng-container>
+
+            <!-- Usuario NO logueado -->
+            <ng-container *ngIf="!isLoggedIn">
+                <a class="nav-link host-link" routerLink="/login">Conviértete en anfitrión</a>
+                <a class="nav-link host-link" routerLink="/login">Iniciar Sesión</a>
+                <a class="nav-link host-link" routerLink="/register">Regístrate</a>
+            </ng-container>
         </div>
     </div>
 </nav>
@@ -50,15 +87,15 @@
         <div class="sidebar">
             <h4 class="sidebar-title">Mi Perfil</h4>
             <div class="sidebar-menu">
-                <a routerLink="/perfil" class="sidebar-item active" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+                <a routerLink="/profile-user" class="sidebar-item active" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
                     <i class="fas fa-user-edit"></i>
                     <span>Editar Perfil</span>
                 </a>
-                <a routerLink="/cambiar-contrasena" class="sidebar-item" routerLinkActive="active">
+                <a routerLink="/change-password" class="sidebar-item" routerLinkActive="active">
                     <i class="fas fa-key"></i>
                     <span>Cambiar Contraseña</span>
                 </a>
-                <a routerLink="/mis-reservas" class="sidebar-item" routerLinkActive="active">
+                <a routerLink="/reservations-history" class="sidebar-item" routerLinkActive="active">
                     <i class="fas fa-calendar-check"></i>
                     <span>Mis Reservas</span>
                 </a>
@@ -99,10 +136,14 @@
                         <input type="tel" class="form-control" id="telefono" formControlName="phoneNumber" placeholder="+57 123 456 7890">
                     </div>
 
-                    <div class="form-group">
+                    <!-- Biografía solo para ANFITRIONES -->
+                    <div class="form-group" *ngIf="isHost">
                         <label for="bio" class="form-label"><i class="fas fa-comment-alt"></i> Biografía</label>
                         <textarea class="form-control" id="bio" rows="3" formControlName="bio"
                                   placeholder="Cuéntales a tus huéspedes sobre ti..."></textarea>
+                        <small class="form-text text-muted">
+                            Esta biografía será visible para los huéspedes que vean tu perfil de anfitrión.
+                        </small>
                     </div>
 
                     <div class="form-group">
