@@ -116,32 +116,96 @@ export class ReservationsHostComponent implements OnInit {
 
     categorizeBookings(): void {
         const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-        this.activeReservations = this.allReservations.filter(booking => {
+        console.log('=== INICIANDO CATEGORIZACIÓN ===');
+        console.log('Fecha actual:', today.toISOString().split('T')[0]);
+
+        this.activeReservations = [];
+        this.pastReservations = [];
+        this.canceledReservations = [];
+
+        this.allReservations.forEach(booking => {
             const status = booking.status?.toUpperCase();
-            const checkOutDate = new Date(booking.checkOutDate);
+            const checkInDate = this.parseDate(booking.checkInDate);
+            const checkOutDate = this.parseDate(booking.checkOutDate);
 
-            // Reservas activas: CONFIRMED o PENDING con checkOutDate en el futuro
-            return (status === 'CONFIRMED' || status === 'PENDING') && checkOutDate >= now;
+            console.log(`Reserva ${booking.id}:`, {
+                status: status,
+                checkIn: booking.checkInDate,
+                checkOut: booking.checkOutDate,
+                parsedCheckIn: checkInDate.toISOString().split('T')[0],
+                parsedCheckOut: checkOutDate.toISOString().split('T')[0],
+                isCheckOutValid: checkOutDate >= checkInDate
+            });
+
+            // Primero: Reservas canceladas (independiente de las fechas)
+            if (status === 'CANCELLED' || status === 'CANCELED') {
+                this.canceledReservations.push(booking);
+                console.log(`  -> Categorizada como CANCELADA`);
+                return;
+            }
+
+            // Segundo: Reservas COMPLETED (independiente de las fechas)
+            if (status === 'COMPLETED') {
+                this.pastReservations.push(booking);
+                console.log(`  -> Categorizada como PASADA (COMPLETED)`);
+                return;
+            }
+
+            // Para CONFIRMED y PENDING, verificar fechas
+            if (status === 'CONFIRMED' || status === 'PENDING') {
+                // Validar que las fechas sean coherentes
+                if (checkOutDate < checkInDate) {
+                    console.warn(`  -> FECHAS INCONSISTENTES: checkOut antes de checkIn`);
+                    // Si las fechas son inconsistentes, tratar como pasada si el checkOut ya pasó
+                    if (checkOutDate < today) {
+                        this.pastReservations.push(booking);
+                        console.log(`  -> Categorizada como PASADA (fechas inconsistentes)`);
+                    } else {
+                        this.activeReservations.push(booking);
+                        console.log(`  -> Categorizada como ACTIVA (fechas inconsistentes)`);
+                    }
+                    return;
+                }
+
+                // Fechas coherentes - categorizar normalmente
+                if (checkOutDate >= today) {
+                    this.activeReservations.push(booking);
+                    console.log(`  -> Categorizada como ACTIVA`);
+                } else {
+                    this.pastReservations.push(booking);
+                    console.log(`  -> Categorizada como PASADA`);
+                }
+                return;
+            }
+
+            // Estado desconocido - categorizar por fecha de checkOut
+            console.warn(`  -> ESTADO DESCONOCIDO: ${status}`);
+            if (checkOutDate < today) {
+                this.pastReservations.push(booking);
+                console.log(`  -> Categorizada como PASADA (estado desconocido)`);
+            } else {
+                this.activeReservations.push(booking);
+                console.log(`  -> Categorizada como ACTIVA (estado desconocido)`);
+            }
         });
 
-        this.pastReservations = this.allReservations.filter(booking => {
-            const status = booking.status?.toUpperCase();
-            const checkOutDate = new Date(booking.checkOutDate);
+        console.log('=== RESUMEN FINAL ===');
+        console.log('Activas:', this.activeReservations.length);
+        console.log('Pasadas:', this.pastReservations.length);
+        console.log('Canceladas:', this.canceledReservations.length);
+    }
 
-            // Reservas pasadas: COMPLETED o CONFIRMED con checkOutDate en el pasado
-            return status === 'COMPLETED' ||
-                (status === 'CONFIRMED' && checkOutDate < now);
-        });
-
-        this.canceledReservations = this.allReservations.filter(booking => {
-            const status = booking.status?.toUpperCase();
-            return status === 'CANCELLED' || status === 'CANCELED';
-        });
-
-        console.log('Reservas activas:', this.activeReservations.length);
-        console.log('Reservas pasadas:', this.pastReservations.length);
-        console.log('Reservas canceladas:', this.canceledReservations.length);
+    private parseDate(dateString: string): Date {
+        try {
+            // Parsear la fecha en formato YYYY-MM-DD
+            const [year, month, day] = dateString.split('-').map(Number);
+            return new Date(year, month - 1, day); // month - 1 porque JavaScript usa 0-11
+        } catch (error) {
+            console.error('Error parseando fecha:', dateString, error);
+            return new Date(); // Fallback a fecha actual
+        }
     }
 
     // ===== ACCIONES =====
@@ -240,17 +304,19 @@ export class ReservationsHostComponent implements OnInit {
 
     formatDate(dateString: string): string {
         try {
-            const date = new Date(dateString);
+            const [year, month, day] = dateString.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+
             return date.toLocaleDateString('es-CO', {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric'
             });
         } catch (error) {
+            console.error('Error formateando fecha:', dateString, error);
             return dateString;
         }
     }
-
     formatNumber(value: number): string {
         return Math.round(value).toLocaleString('es-CO');
     }
