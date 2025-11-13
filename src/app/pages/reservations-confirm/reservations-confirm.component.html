@@ -9,7 +9,7 @@
         </a>
         <div class="d-flex align-items-center ms-auto">
             <a (click)="goToProfile()" class="cursor-pointer">
-                <img [src]="host.image" alt="Perfil" class="rounded-circle profile-img">
+                <img [src]="bookingData?.user?.photoProfile || 'assets/imagenes/perfil.png'" alt="Perfil" class="rounded-circle profile-img">
             </a>
         </div>
     </div>
@@ -17,7 +17,18 @@
 
 <!-- Contenido principal -->
 <div class="container mt-5">
-    <div class="row justify-content-center">
+    <!-- Indicador de carga -->
+    <div *ngIf="isLoading" class="row justify-content-center">
+        <div class="col-lg-10 col-xl-9 text-center">
+            <div class="card p-5">
+                <div class="spinner-border spinner-border-lg mx-auto mb-3" style="width: 3rem; height: 3rem;"></div>
+                <h4>Cargando información de la reserva...</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido de la reserva -->
+    <div *ngIf="!isLoading && bookingData" class="row justify-content-center">
         <div class="col-lg-10 col-xl-9">
             <a (click)="goBack()" class="text-decoration-none mb-3 d-inline-block texto-legible cursor-pointer">
                 <i class="fas fa-arrow-left me-2"></i>Volver al alojamiento
@@ -30,10 +41,10 @@
                     <!-- Card del anfitrión -->
                     <div class="card p-3 mb-4">
                         <div class="d-flex align-items-center">
-                            <img [src]="host.image" class="rounded-circle host-img" alt="Anfitrión">
+                            <img [src]="bookingData.accommodation.host.photoProfile || 'assets/imagenes/perfil.png'" class="rounded-circle host-img" alt="Anfitrión">
                             <div class="ms-3">
                                 <p class="mb-0 texto-legible host-label">Anfitrión</p>
-                                <h5 class="mb-0">{{ host.name }}</h5>
+                                <h5 class="mb-0">{{ bookingData.accommodation.host.name }} {{ bookingData.accommodation.host.lastName }}</h5>
                             </div>
                         </div>
                     </div>
@@ -71,9 +82,6 @@
                             </ul>
                         </div>
                     </div>
-
-                    <!-- Card de método de pago -->
-
                 </div>
 
                 <!-- Columna derecha - Resumen -->
@@ -81,13 +89,13 @@
                     <div class="card p-4">
                         <!-- Información del alojamiento -->
                         <div class="d-flex align-items-center mb-3 summary-card">
-                            <img [src]="accommodation.image" alt="Alojamiento" class="accommodation-img">
+                            <img [src]="bookingData.accommodation.mainImage || 'assets/imagenes/hostal1.jpg.webp'" alt="Alojamiento" class="accommodation-img">
                             <div class="ms-3">
-                                <h5 class="mb-1">{{ accommodation.name }}</h5>
-                                <p class="mb-0 texto-legible location-text">{{ accommodation.location }}</p>
+                                <h5 class="mb-1">{{ bookingData.accommodation.title }}</h5>
+                                <p class="mb-0 texto-legible location-text">{{ bookingData.accommodation.city }}</p>
                                 <p class="mb-0">
                                     <i class="fas fa-star star-icon"></i>
-                                    {{ accommodation.rating }} ({{ accommodation.reviewCount }} reseñas)
+                                    {{ bookingData.accommodation.averageRating || 0 }} ({{ bookingData.accommodation.totalBookings || 0 }} reservas)
                                 </p>
                             </div>
                         </div>
@@ -98,11 +106,11 @@
                         <div class="d-flex justify-content-between mb-3">
                             <div>
                                 <strong>Fechas</strong>
-                                <p>{{ tripDetails.checkIn }} - {{ tripDetails.checkOut }}</p>
+                                <p>{{ formatDate(bookingData.checkInDate) }} - {{ formatDate(bookingData.checkOutDate) }}</p>
                             </div>
                             <div>
                                 <strong>Huéspedes</strong>
-                                <p>{{ tripDetails.guests }} adultos</p>
+                                <p>{{ bookingData.numberOfGuests }} adultos</p>
                             </div>
                         </div>
                         <hr>
@@ -110,29 +118,30 @@
                         <!-- Detalle del precio -->
                         <h4 class="mb-3">Detalle del precio</h4>
                         <div class="d-flex justify-content-between mb-2">
-                            <span>{{ formatCurrency(priceDetails.pricePerNight) }} x {{ priceDetails.nights }} noches</span>
-                            <span>{{ formatCurrency(priceDetails.subtotal) }}</span>
+                            <span>{{ formatCurrency(bookingData.accommodation.pricePerNight) }} x {{ calculateNights() }} noches</span>
+                            <span>{{ formatCurrency(calculateSubtotal()) }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-3">
                             <span>Comisión por servicio</span>
-                            <span>{{ formatCurrency(priceDetails.serviceFee) }}</span>
+                            <span>{{ formatCurrency(calculateServiceFee()) }}</span>
                         </div>
                         <hr>
 
                         <!-- Total -->
                         <div class="d-flex justify-content-between fw-bold fs-5 mb-4">
                             <span>Total (COP)</span>
-                            <span>{{ formatCurrency(priceDetails.total) }}</span>
+                            <span>{{ formatCurrency(bookingData.totalPrice) }}</span>
                         </div>
 
                         <!-- Botón de confirmación -->
                         <button
                                 class="btn btn-primary w-100"
                                 (click)="confirmAndPay()"
-                                [disabled]="isProcessing">
+                                [disabled]="isProcessing || bookingData.status !== 'PENDING'">
                             <span *ngIf="isProcessing" class="spinner-border spinner-border-sm me-2"></span>
                             <span *ngIf="isProcessing">Procesando...</span>
-                            <span *ngIf="!isProcessing">Confirmar y Pagar</span>
+                            <span *ngIf="!isProcessing && bookingData.status === 'PENDING'">Confirmar y Pagar</span>
+                            <span *ngIf="!isProcessing && bookingData.status !== 'PENDING'">Reserva {{ bookingData.status }}</span>
                         </button>
 
                         <!-- Términos y condiciones -->

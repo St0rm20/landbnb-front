@@ -1,41 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
-// import { ReservationService } from '../services/reservation.service'; // Descomenta cuando tengas tu servicio
-
-interface Accommodation {
-    id: string;
-    name: string;
-    location: string;
-    image: string;
-    rating: number;
-    reviewCount: number;
-}
-
-interface TripDetails {
-    checkIn: string;
-    checkOut: string;
-    guests: number;
-    nights: number;
-}
-
-interface PriceDetails {
-    pricePerNight: number;
-    nights: number;
-    subtotal: number;
-    serviceFee: number;
-    total: number;
-}
-
-interface Host {
-    name: string;
-    image: string;
-}
-
-interface PaymentMethod {
-    type: string;
-    lastDigits: string;
-}
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
+import { BookingService, BookingDto } from '../../services/booking.service';
 
 @Component({
     selector: 'app-reservations-confirm',
@@ -49,81 +15,94 @@ interface PaymentMethod {
 })
 export class ReservationsConfirmComponent implements OnInit {
 
-    accommodation: Accommodation = {
-        id: '1',
-        name: 'Cabaña en la Montaña',
-        location: 'Salento, Quindío',
-        image: 'assets/imagenes/hostal1.jpg.webp',
-        rating: 4.85,
-        reviewCount: 25
-    };
+    bookingId: number = 0;
+    bookingData: BookingDto | null = null;
 
-    host: Host = {
-        name: 'Carlos Flórez',
-        image: 'assets/imagenes/perfil.png'
-    };
-
-    tripDetails: TripDetails = {
-        checkIn: '30 ago, 2025',
-        checkOut: '4 sep, 2025',
-        guests: 2,
-        nights: 5
-    };
-
-    priceDetails: PriceDetails = {
-        pricePerNight: 150000,
-        nights: 5,
-        subtotal: 750000,
-        serviceFee: 50000,
-        total: 800000
-    };
-
-    paymentMethod: PaymentMethod = {
-        type: 'Visa',
-        lastDigits: '1234'
-    };
-
-    cancellationDate = '30 de agosto de 2025 a las 3:00 PM';
+    cancellationDate = '';
     checkInTime = 'Después de las 3:00 PM';
     checkOutTime = 'Antes de las 11:00 AM';
 
     isProcessing = false;
+    isLoading = true;
 
     constructor(
-        private router: Router
-        // private reservationService: ReservationService
+        private router: Router,
+        private route: ActivatedRoute,
+        private bookingService: BookingService
     ) { }
 
     ngOnInit(): void {
-        // Aquí podrías cargar los datos de la reserva desde el servicio
-        // this.loadReservationData();
+        this.route.params.subscribe(params => {
+            this.bookingId = +params['id'];
+            if (this.bookingId) {
+                this.loadBookingData();
+            } else {
+                alert('ID de reserva no válido');
+                this.router.navigate(['/']);
+            }
+        });
     }
 
-    /**
-     * Navega de vuelta al detalle del alojamiento
-     */
-    goBack(): void {
-        this.router.navigate(['/detalle-alojamiento']);
+    loadBookingData(): void {
+        this.isLoading = true;
+
+        this.bookingService.getBookingById(this.bookingId).subscribe({
+            next: (booking: BookingDto) => {
+                this.bookingData = booking;
+                this.calculateCancellationDate(booking.checkInDate);
+                this.isLoading = false;
+            },
+            error: (error) => {
+                console.error('Error al cargar la reserva:', error);
+                alert('Error al cargar los datos de la reserva');
+                this.isLoading = false;
+                this.router.navigate(['/']);
+            }
+        });
     }
 
-    /**
-     * Navega al perfil del usuario
-     */
-    goToProfile(): void {
-        this.router.navigate(['/perfil']);
+    calculateCancellationDate(checkInDate: string): void {
+        const checkIn = new Date(checkInDate);
+        checkIn.setHours(checkIn.getHours() - 48);
+        this.cancellationDate = this.formatDateWithTime(checkIn);
     }
 
-    /**
-     * Abre el modal para cambiar el método de pago
-     */
-    changePaymentMethod(): void {
-        console.log('Cambiar método de pago');
-        // Aquí podrías abrir un modal o navegar a una página de métodos de pago
+    formatDate(dateString: string): string {
+        const date = new Date(dateString);
+        const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun',
+            'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+        return `${date.getDate()} ${months[date.getMonth()]}, ${date.getFullYear()}`;
     }
 
-    /**
-     * Formatea números como moneda colombiana
-     */
+    formatDateWithTime(date: Date): string {
+        const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+            'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+        let hours = date.getHours();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+
+        return `${date.getDate()} de ${months[date.getMonth()]} de ${date.getFullYear()} a las ${hours}:00 ${ampm}`;
+    }
+
+    calculateNights(): number {
+        if (!this.bookingData) return 0;
+        const checkIn = new Date(this.bookingData.checkInDate);
+        const checkOut = new Date(this.bookingData.checkOutDate);
+        return Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+    }
+
+    calculateServiceFee(): number {
+        if (!this.bookingData) return 0;
+        return this.bookingData.totalPrice * 0.10;
+    }
+
+    calculateSubtotal(): number {
+        if (!this.bookingData) return 0;
+        return this.bookingData.totalPrice - this.calculateServiceFee();
+    }
+
     formatCurrency(amount: number): string {
         return new Intl.NumberFormat('es-CO', {
             style: 'currency',
@@ -132,47 +111,39 @@ export class ReservationsConfirmComponent implements OnInit {
         }).format(amount);
     }
 
-    /**
-     * Confirma y procesa el pago de la reserva
-     */
+    goBack(): void {
+        if (this.bookingData) {
+            this.router.navigate(['/detalle-alojamiento', this.bookingData.accommodation.id]);
+        } else {
+            this.router.navigate(['/']);
+        }
+    }
+
+    goToProfile(): void {
+        this.router.navigate(['/perfil']);
+    }
+
     confirmAndPay(): void {
-        if (this.isProcessing) return;
+        if (this.isProcessing || !this.bookingData) return;
+
+        if (this.bookingData.status !== 'PENDING') {
+            alert('Esta reserva ya no puede ser confirmada');
+            return;
+        }
 
         this.isProcessing = true;
 
-        console.log('Procesando pago...', {
-            accommodationId: this.accommodation.id,
-            tripDetails: this.tripDetails,
-            priceDetails: this.priceDetails,
-            paymentMethod: this.paymentMethod
+        this.bookingService.confirmBooking(this.bookingId).subscribe({
+            next: (response) => {
+                this.isProcessing = false;
+                alert('¡Reserva confirmada exitosamente!');
+                this.router.navigate(['/mis-reservas']);
+            },
+            error: (error) => {
+                this.isProcessing = false;
+                console.error('Error al confirmar la reserva:', error);
+                alert('Error al procesar el pago. Por favor, intenta nuevamente.');
+            }
         });
-
-        // Simulación de llamada a API
-        setTimeout(() => {
-            this.isProcessing = false;
-            alert('¡Reserva confirmada exitosamente!');
-            this.router.navigate(['/mis-reservas']);
-
-            // Para simular un error, descomenta:
-            // alert('Error al procesar el pago. Por favor, intenta nuevamente.');
-        }, 2000);
-
-        /* Cuando conectes con tu backend, reemplaza el setTimeout por:
-        this.reservationService.confirmReservation({
-          accommodationId: this.accommodation.id,
-          tripDetails: this.tripDetails,
-          paymentMethod: this.paymentMethod
-        }).subscribe({
-          next: (response) => {
-            this.isProcessing = false;
-            alert('¡Reserva confirmada exitosamente!');
-            this.router.navigate(['/mis-reservas']);
-          },
-          error: (error) => {
-            this.isProcessing = false;
-            alert('Error al procesar el pago. Por favor, intenta nuevamente.');
-          }
-        });
-        */
     }
 }
