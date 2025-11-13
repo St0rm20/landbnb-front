@@ -84,8 +84,9 @@ export const routes: Routes = [
                 .then(m => m.ReservationsHostComponent),
     },
 
+    // CAMBIO AQUÍ: Agregar el parámetro :id a la ruta
     {
-        path: 'reservations-confirm',
+        path: 'reservations-confirm/:id',
         loadComponent: () =>
             import('./pages/reservations-confirm/reservations-confirm.component')
                 .then(m => m.ReservationsConfirmComponent),

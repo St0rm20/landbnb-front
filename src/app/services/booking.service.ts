@@ -80,8 +80,15 @@ export class BookingService {
     /**
      * Confirma/completa una reserva
      */
-    confirmBooking(bookingId: number): Observable<InfoDto> {
-        return this.http.post<InfoDto>(`${this.apiUrl}/${bookingId}/confirm`, {});
+    confirmBooking(bookingId: number): Observable<BookingDto> {
+        return this.http.post<BookingDto>(`${this.apiUrl}/${bookingId}/confirm`, {});
+    }
+
+    /**
+     * Obtiene una reserva específica por su ID
+     */
+    getBookingById(id: number): Observable<BookingDto> {
+        return this.http.get<BookingDto>(`${this.apiUrl}/${id}`);
     }
 }
 
@@ -111,18 +118,31 @@ export interface AccommodationDetailDto {
     description: string;
     city: string;
     address: string;
+    latitude?: number;
+    longitude?: number;
     pricePerNight: number;
     maxCapacity: number;
+    services?: string[];
+    host: HostInfoDto;
+    averageRating: number;
+    totalBookings: number;
     mainImage?: string;
     images?: string[];
 }
 
-export interface UserInfoDto {
-    id: number;
+export interface HostInfoDto {
     name: string;
     lastName: string;
-    email: string;
+    photoProfile?: string;
+}
+
+export interface UserInfoDto {
+    id?: number;
+    name: string;
+    lastName: string;
+    email?: string;
     phoneNumber?: string;
+    photoProfile?: string;
 }
 
 export interface InfoDto {
