@@ -164,18 +164,109 @@
                 <div id="map" class="map-container"></div>
             </div>
 
-            <div class="section" *ngIf="property.averageRating > 0">
-                <h2><i class="fas fa-star" style="color: #ffc107;"></i> {{ property.averageRating }} · {{ property.totalBookings }} reseñas</h2>
+            <!-- Sección de Reseñas -->
+            <div class="section">
+                <div class="reviews-header">
+                    <h2><i class="fas fa-star" style="color: #ffc107;"></i> {{ property.averageRating || 'Nuevo' }} · {{ reviews.length }} reseñas</h2>
+
+                    <button class="btn-primary" (click)="openReviewForm()" *ngIf="canUserReview()">
+                        <i class="fas fa-edit"></i> Dejar Reseña
+                    </button>
+
+                    <div class="review-not-allowed" *ngIf="isLoggedIn && !canUserReview() && reviews.length > 0">
+                        <i class="fas fa-info-circle"></i>
+                        <p>Para dejar una reseña, necesitas haber completado una reserva en este alojamiento</p>
+                    </div>
+                </div>
+
+                <!-- Formulario de Reseña -->
+                <div class="review-form-container" *ngIf="showReviewForm">
+                    <h3>Deja tu reseña</h3>
+
+                    <form [formGroup]="reviewForm" (ngSubmit)="onSubmitReview()" class="review-form">
+                        <!-- Rating Stars -->
+                        <div class="rating-section">
+                            <label class="form-label">Calificación</label>
+                            <div class="star-rating">
+                                <div
+                                        *ngFor="let star of [1,2,3,4,5]; let i = index"
+                                        class="star-container"
+                                        (click)="setReviewRating(star)">
+                                    <i [class]="reviewRating >= star ? 'fas fa-star active' : 'far fa-star'"></i>
+                                </div>
+                            </div>
+                            <div class="rating-text" *ngIf="reviewRating > 0">
+                                {{ getRatingText(reviewRating) }}
+                            </div>
+                            <div class="error-message" *ngIf="reviewForm.get('rating')?.touched && reviewForm.get('rating')?.errors?.['required']">
+                                La calificación es requerida
+                            </div>
+                        </div>
+
+                        <!-- Comment Textarea -->
+                        <div class="form-group">
+                            <label class="form-label">Comentario</label>
+                            <textarea
+                                    class="form-textarea"
+                                    formControlName="comment"
+                                    placeholder="Comparte tu experiencia en este alojamiento..."
+                                    rows="5"
+                                    maxlength="1000">
+                            </textarea>
+                            <div class="char-counter">
+                                {{ reviewForm.get('comment')?.value?.length || 0 }}/1000 caracteres
+                            </div>
+                            <div class="error-message" *ngIf="reviewForm.get('comment')?.touched && reviewForm.get('comment')?.errors?.['required']">
+                                El comentario es requerido
+                            </div>
+                            <div class="error-message" *ngIf="reviewForm.get('comment')?.touched && reviewForm.get('comment')?.errors?.['minlength']">
+                                El comentario debe tener al menos 10 caracteres
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="review-form-actions">
+                            <button
+                                    type="submit"
+                                    class="btn-primary submit-btn"
+                                    [disabled]="isSubmittingReview || reviewForm.invalid">
+                                <i class="fas fa-spinner fa-spin" *ngIf="isSubmittingReview"></i>
+                                {{ isSubmittingReview ? 'Enviando...' : 'Publicar Reseña' }}
+                            </button>
+                            <button type="button" class="btn-secondary" (click)="closeReviewForm()">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Lista de Reseñas -->
                 <div class="reviews-grid">
                     <div class="review-card" *ngFor="let review of reviews">
                         <div class="review-header">
-                            <img [src]="review.avatar" class="review-avatar">
+                            <img [src]="review.usuario.photoProfile || 'assets/imagenes/perfil.png'"
+                                 [alt]="review.usuario.name"
+                                 class="review-avatar">
                             <div class="review-user">
-                                <h4>{{ review.user }}</h4>
-                                <div class="review-date">{{ review.date }}</div>
+                                <h4>{{ review.usuario.name }}</h4>
+                                <div class="review-date">{{ formatReviewDate(review.fechaCreacion) }}</div>
+                            </div>
+                            <div class="review-stars">
+                                <i class="fas fa-star" *ngFor="let star of getStars(review.calificacion)"></i>
+                                <i class="far fa-star" *ngFor="let star of getEmptyStars(review.calificacion)"></i>
                             </div>
                         </div>
-                        <p>{{ review.comment }}</p>
+                        <p class="review-comment">{{ review.texto }}</p>
+
+                        <div class="host-reply" *ngIf="review.respuestaAnfitrion">
+                            <div class="reply-header">
+                                <strong>Respuesta del anfitrión:</strong>
+                            </div>
+                            <p class="reply-text">{{ review.respuestaAnfitrion }}</p>
+                        </div>
+                    </div>
+
+                    <div class="no-reviews" *ngIf="reviews.length === 0">
+                        <i class="far fa-comments"></i>
+                        <p>Este alojamiento aún no tiene reseñas</p>
                     </div>
                 </div>
             </div>

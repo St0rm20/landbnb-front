@@ -39,11 +39,13 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
     private markerSub?: Subscription;
     isUploading: boolean = false;
 
+    // Propiedades para el navbar y perfil
     dropdownOpen = false;
     isLoggedIn: boolean = false;
     userName: string = '';
     userEmail: string = '';
     userRole: string = '';
+    profilePicUrl: string = 'assets/imagenes/perfil.png';
 
     constructor(
         private fb: FormBuilder,
@@ -85,16 +87,44 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
         setTimeout(() => this.initializeMap(), 100);
     }
 
+    // ===== MÉTODOS DE PERFIL Y NAVBAR =====
+
     loadUserProfile(): void {
         this.userService.getProfile().subscribe({
             next: (data: UserDto) => {
                 this.userName = data.name;
+                if (data.profilePictureUrl) {
+                    this.profilePicUrl = this.fixCloudinaryUrl(data.profilePictureUrl);
+                } else {
+                    this.profilePicUrl = 'assets/imagenes/perfil.png';
+                }
                 console.log(' Usuario cargado:', data.name);
             },
             error: (error: any) => {
                 console.error("Error cargando perfil", error);
+                this.userName = this.userEmail;
+                this.profilePicUrl = 'assets/imagenes/perfil.png';
             }
         });
+    }
+
+    private fixCloudinaryUrl(url: string | null | undefined): string {
+        if (!url || url.trim() === '' || url === 'null' || url === 'undefined') {
+            return '';
+        }
+        if (url.startsWith('https://')) {
+            return url;
+        }
+        if (url.includes('cloudinary.com') && url.startsWith('http://')) {
+            return url.replace('http://', 'https://');
+        }
+        if (url.startsWith('http://') && !url.includes('localhost')) {
+            return url.replace('http://', 'https://');
+        }
+        if (url.includes('cloudinary.com') && !url.startsWith('http')) {
+            return 'https://' + url;
+        }
+        return url;
     }
 
     @HostListener('document:click', ['$event'])
@@ -115,6 +145,53 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
         event.preventDefault();
         this.tokenService.logout();
         this.router.navigate(['/login']).then(() => window.location.reload());
+    }
+
+    get isHost(): boolean {
+        return this.userRole === 'HOST';
+    }
+
+    get isUser(): boolean {
+        return this.userRole === 'USER';
+    }
+
+    getUserFullName(): string {
+        return this.userName || 'Usuario';
+    }
+
+    // ===== MÉTODOS DEL FORMULARIO Y MAPA =====
+
+    private async initializeMap(): Promise<void> {
+        try {
+            const mapContainer = document.getElementById('map');
+            if (!mapContainer) {
+                console.error('Contenedor del mapa no encontrado');
+                return;
+            }
+
+            const defaultCenter: [number, number] = [-75.6811, 4.5370];
+            const zoom = 13;
+
+            await this.mapService.initializeMap('map', defaultCenter, zoom);
+            console.log(' Mapa inicializado');
+
+            this.markerSub = this.mapService.addMarkerOnClick().subscribe({
+                next: (coords: any) => {
+                    this.selectedLocation = {
+                        latitude: coords.lat,
+                        longitude: coords.lng
+                    };
+
+                    this.createPlaceForm.patchValue({
+                        latitude: this.selectedLocation.latitude,
+                        longitude: this.selectedLocation.longitude
+                    });
+                },
+                error: (err) => { console.error('Error al seleccionar ubicación:', err); }
+            });
+        } catch (error) {
+            console.error('Error al inicializar el mapa:', error);
+        }
     }
 
     onFilesSelected(event: Event): void {
@@ -276,41 +353,6 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
         });
     }
 
-    private async initializeMap(): Promise<void> {
-        try {
-            const mapContainer = document.getElementById('map');
-            if (!mapContainer) {
-                console.error('Contenedor del mapa no encontrado');
-                return;
-            }
-
-            const defaultCenter: [number, number] = [-75.6811, 4.5370];
-            const zoom = 13;
-
-            await this.mapService.initializeMap('map', defaultCenter, zoom);
-            console.log(' Mapa inicializado');
-
-            this.markerSub = this.mapService.addMarkerOnClick().subscribe({
-
-                next: (coords: any) => {
-
-                    this.selectedLocation = {
-                        latitude: coords.lat,
-                        longitude: coords.lng
-                    };
-
-                    this.createPlaceForm.patchValue({
-                        latitude: this.selectedLocation.latitude,
-                        longitude: this.selectedLocation.longitude
-                    });
-                },
-                error: (err) => { console.error('Error al seleccionar ubicación:', err); }
-            });
-        } catch (error) {
-            console.error('Error al inicializar el mapa:', error);
-        }
-    }
-
     onServiceToggle(event: Event): void {
         const input = event.target as HTMLInputElement;
         const value = input.value;
@@ -358,7 +400,6 @@ export class CreatePlaceComponent implements OnInit, AfterViewInit, OnDestroy {
 
         console.log(`📸 Imágenes restantes: ${this.selectedFiles.length}`);
     }
-
 
     get isFormValid(): boolean {
         const hasBasicFields = this.createPlaceForm.valid;

@@ -136,13 +136,44 @@ export class HomeComponent implements OnInit, AfterViewInit {
     }
 
     private processAccommodationData(accommodation: any): AccommodationDTO {
+        console.log('--- PROCESANDO ACCOMMODATION ---');
+        console.log('ID:', accommodation.id);
+        console.log('mainImage ANTES:', accommodation.mainImage);
+        console.log('images ANTES:', accommodation.images);
+
         let mainImageUrl = accommodation.mainImage;
         let allImages: string[] = accommodation.images || [];
 
+        // Procesar imagen principal
         if (mainImageUrl) {
+            console.log('Procesando mainImage...');
             mainImageUrl = this.fixCloudinaryUrl(mainImageUrl);
+            console.log('mainImage DESPUÉS de fixCloudinaryUrl:', mainImageUrl);
+        } else {
+            console.log('No hay mainImage, buscando en images array...');
+            // Si no hay imagen principal, usar la primera de la lista o un placeholder
+            mainImageUrl = allImages.length > 0
+                ? this.fixCloudinaryUrl(allImages[0])
+                : 'assets/imagenes/default-property.jpg';
+            console.log('mainImage asignada desde array o placeholder:', mainImageUrl);
         }
-        allImages = allImages.map(img => this.fixCloudinaryUrl(img));
+
+        // Procesar todas las imágenes y filtrar URLs vacías
+        allImages = allImages
+            .map(img => {
+                const fixed = this.fixCloudinaryUrl(img);
+                console.log(`Imagen array: ${img} -> ${fixed}`);
+                return fixed;
+            })
+            .filter(img => {
+                const isValid = img && img.trim() !== '';
+                console.log(`Validando imagen: ${img} -> ${isValid ? 'válida' : 'inválida'}`);
+                return isValid;
+            });
+
+        console.log('mainImage FINAL:', mainImageUrl);
+        console.log('images FINAL:', allImages);
+        console.log('--- FIN PROCESAMIENTO ---\n');
 
         return {
             id: accommodation.id,
@@ -210,9 +241,10 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
     handleImageError(event: Event): void {
         const imgElement = event.target as HTMLImageElement;
-        const fallbackImage = 'assets/imagenes/default-property.jpg';
-        imgElement.src = fallbackImage;
+
+        imgElement.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect width="400" height="300" fill="%23e0e0e0"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="%23999"%3EImagen no disponible%3C/text%3E%3C/svg%3E';
         imgElement.onerror = null;
+
     }
 
     loadFavorites(page: number): void {
@@ -221,13 +253,34 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
         this.accommodationService.getFavoriteAccommodations(page).subscribe({
             next: (data: any) => {
-                this.properties = (data.content || []).map((accommodation: any) =>
-                    this.processAccommodationData(accommodation)
-                );
+                console.log('=== DATOS DE FAVORITOS RAW ===');
+                console.log('Data completa:', data);
+                console.log('Content:', data.content);
+
+                if (data.content && data.content.length > 0) {
+                    console.log('Primer alojamiento RAW:', data.content[0]);
+                    console.log('mainImage del primer alojamiento:', data.content[0].mainImage);
+                    console.log('images del primer alojamiento:', data.content[0].images);
+                }
+
+                // CORRECCIÓN: Usar processAccommodationData para procesar las URLs de las imágenes
+                this.properties = (data.content || []).map((accommodation: any) => {
+                    const processed = this.processAccommodationData(accommodation);
+                    console.log('=== ALOJAMIENTO PROCESADO ===');
+                    console.log('ID:', processed.id);
+                    console.log('Title:', processed.title);
+                    console.log('mainImage DESPUÉS de procesar:', processed.mainImage);
+                    console.log('images DESPUÉS de procesar:', processed.images);
+                    return processed;
+                });
 
                 this.filteredProperties = [...this.properties];
                 this.totalPages = data?.totalPages || 1;
                 this.currentPage = page + 1;
+
+                console.log('=== PROPIEDADES FINALES ===');
+                console.log('Total properties:', this.properties.length);
+                console.log('Filtered properties:', this.filteredProperties.length);
 
                 if (this.properties.length === 0) {
                     Swal.fire({

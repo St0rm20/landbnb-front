@@ -99,6 +99,13 @@ export const routes: Routes = [
     },
 
     {
+        path: 'leave-review/:id',
+        loadComponent: () =>
+            import('./pages/leave-review/leave-review.component')
+                .then(m => m.LeaveReviewComponent),
+    },
+
+    {
         path: 'es',
         redirectTo: '',
         pathMatch: 'full'

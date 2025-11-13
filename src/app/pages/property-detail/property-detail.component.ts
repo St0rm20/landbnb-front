@@ -7,6 +7,7 @@ import { AccommodationService } from '../../services/accommodation-service.servi
 import { BookingService, BookingRequest } from '../../services/booking.service';
 import { TokenService } from '../../services/token-service.service';
 import { UserService } from '../../services/user-service.service';
+import { CommentService, CommentDTO } from '../../services/comment-service';
 import { AccommodationDetailDTO } from '../../models/accommodation-detail-dto';
 import Swal from 'sweetalert2';
 
@@ -31,6 +32,7 @@ interface UnavailableDate {
 })
 export class PropertyDetailComponent implements OnInit, AfterViewInit {
     reservationForm: FormGroup;
+    reviewForm: FormGroup;
     dropdownOpen = false;
     accommodationId: number = 0;
     property: AccommodationDetailDTO | null = null;
@@ -51,7 +53,11 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
     userEmail: string = '';
     userRole: string = '';
 
-    reviews: Review[] = [];
+    reviews: CommentDTO[] = [];
+    showReviewForm: boolean = false;
+    isSubmittingReview: boolean = false;
+    reviewRating: number = 0;
+    reviewComment: string = '';
 
     serviceFee = 65000;
     nights = 0;
@@ -71,10 +77,16 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
         private accommodationService: AccommodationService,
         private bookingService: BookingService,
         private tokenService: TokenService,
-        private userService: UserService
+        private userService: UserService,
+        private commentService: CommentService
     ) {
         this.reservationForm = this.fb.group({
             guests: ['1', Validators.required]
+        });
+
+        this.reviewForm = this.fb.group({
+            rating: [0, [Validators.required, Validators.min(1), Validators.max(5)]],
+            comment: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(1000)]]
         });
     }
 
@@ -91,6 +103,7 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
             if (this.accommodationId) {
                 this.loadAccommodationDetails();
                 this.loadUnavailableDates();
+                this.loadPropertyReviews();
                 if (this.isLoggedIn) {
                     this.checkIfFavorite();
                 }
@@ -107,7 +120,9 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
 
     loadUserProfile(): void {
         this.userService.getProfile().subscribe({
-            next: (data) => { this.userName = data.name; },
+            next: (data) => {
+                this.userName = data.name;
+            },
             error: (error) => {
                 console.error("Error cargando perfil del usuario", error);
                 this.userName = '';
@@ -143,6 +158,19 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
             error: (error) => {
                 console.error('Error al cargar detalles:', error);
                 Swal.fire('Error', 'No se pudo cargar la información del alojamiento', 'error');
+            }
+        });
+    }
+
+    loadPropertyReviews(): void {
+        this.commentService.getAccommodationComments(this.accommodationId, 0, 10).subscribe({
+            next: (response) => {
+                this.reviews = response.content || [];
+                console.log('Reseñas cargadas:', this.reviews);
+            },
+            error: (error) => {
+                console.error('Error al cargar reseñas:', error);
+                this.reviews = [];
             }
         });
     }
@@ -491,6 +519,107 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
                 Swal.fire('Error', errorMessage, 'error');
             }
         });
+    }
+
+    /** ---------------- COMENTARIOS Y RESEÑAS ---------------- */
+    openReviewForm(): void {
+        if (!this.isLoggedIn) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Inicia sesión',
+                text: 'Debes iniciar sesión para dejar una reseña'
+            });
+            return;
+        }
+        this.showReviewForm = true;
+    }
+
+    closeReviewForm(): void {
+        this.showReviewForm = false;
+        this.reviewForm.reset();
+        this.reviewRating = 0;
+    }
+
+    setReviewRating(rating: number): void {
+        this.reviewRating = rating;
+        this.reviewForm.patchValue({ rating });
+    }
+
+    getRatingText(rating: number): string {
+        const texts: { [key: number]: string } = {
+            1: 'Malo',
+            2: 'Regular',
+            3: 'Bueno',
+            4: 'Muy Bueno',
+            5: 'Excelente'
+        };
+        return texts[rating] || '';
+    }
+
+    onSubmitReview(): void {
+        if (this.reviewForm.invalid) {
+            this.markReviewFormTouched();
+            return;
+        }
+
+        this.isSubmittingReview = true;
+
+        const reviewRequest = {
+            bookingId: 0, // Necesitarías obtener el bookingId del usuario
+            rating: this.reviewForm.value.rating,
+            comment: this.reviewForm.value.comment,
+            accommodationId: this.accommodationId
+        };
+
+        this.commentService.createReview(reviewRequest).subscribe({
+            next: (response: any) => {
+                this.isSubmittingReview = false;
+                this.closeReviewForm();
+                this.loadPropertyReviews(); // Recargar las reseñas
+
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Reseña enviada!',
+                    text: 'Tu reseña ha sido publicada correctamente',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            },
+            error: (error: any) => {
+                this.isSubmittingReview = false;
+                console.error('Error al enviar reseña:', error);
+                const errorMessage = error.error?.message || 'No se pudo enviar la reseña';
+                Swal.fire('Error', errorMessage, 'error');
+            }
+        });
+    }
+
+    private markReviewFormTouched(): void {
+        Object.keys(this.reviewForm.controls).forEach(key => {
+            this.reviewForm.get(key)?.markAsTouched();
+        });
+    }
+
+    getStars(rating: number): number[] {
+        return Array(rating).fill(0);
+    }
+
+    getEmptyStars(rating: number): number[] {
+        return Array(5 - rating).fill(0);
+    }
+
+    formatReviewDate(dateString: string): string {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    }
+
+    canUserReview(): boolean {
+        // Aquí podrías verificar si el usuario tiene reservas completadas en este alojamiento
+        return this.isLoggedIn;
     }
 
     /** ---------------- DROPDOWN & AUTH ---------------- */
