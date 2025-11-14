@@ -18,7 +18,7 @@ interface DisplayMetric {
     icon: string;
     value: string;
     label: string;
-    type?: string; // Para aplicar clases CSS específicas
+    type?: string;
 }
 
 @Component({
@@ -30,7 +30,6 @@ interface DisplayMetric {
 })
 export class StatisticsComponent implements OnInit {
 
-    // --- Propiedades del Navbar y Auth ---
     dropdownOpen = false;
     userName: string = '';
     userEmail: string = '';
@@ -38,7 +37,6 @@ export class StatisticsComponent implements OnInit {
     userRole: string = '';
     profilePicUrl: string = 'assets/imagenes/perfil.png';
 
-    // --- Datos de la Página ---
     accommodations: AccommodationDTO[] = [];
     selectedAccommodationId: number | null = null;
     metrics: AccommodationMetricsDTO | null = null;
@@ -46,7 +44,6 @@ export class StatisticsComponent implements OnInit {
     isLoadingAccommodations: boolean = false;
     displayMetrics: DisplayMetric[] = [];
 
-    // --- Control de Fechas ---
     startDate: string = '';
     endDate: string = '';
 
@@ -68,14 +65,12 @@ export class StatisticsComponent implements OnInit {
             return;
         }
 
-        // Configurar fechas por defecto (últimos 30 días)
         this.setDefaultDateRange();
         this.userEmail = this.tokenService.getEmail();
         this.loadUserProfile();
         this.loadHostAccommodations();
     }
 
-    // ===== FOTO DE PERFIL =====
     loadUserProfile(): void {
         this.userService.getProfile().subscribe({
             next: (data: UserDto) => {
@@ -98,44 +93,33 @@ export class StatisticsComponent implements OnInit {
         if (!url || url.trim() === '' || url === 'null' || url === 'undefined') {
             return '';
         }
-
-        if (url.startsWith('https://')) {
-            return url;
-        }
-
+        if (url.startsWith('https://')) return url;
         if (url.includes('cloudinary.com') && url.startsWith('http://')) {
             return url.replace('http://', 'https://');
         }
-
         if (url.startsWith('http://') && !url.includes('localhost')) {
             return url.replace('http://', 'https://');
         }
-
         if (url.includes('cloudinary.com') && !url.startsWith('http')) {
             return 'https://' + url;
         }
-
         return url;
     }
 
     handleImageError(event: Event): void {
         const imgElement = event.target as HTMLImageElement;
-        console.warn('Error cargando imagen de perfil, usando imagen por defecto');
         imgElement.src = 'assets/imagenes/perfil.png';
         imgElement.onerror = null;
     }
 
-    // ===== CONFIGURACIÓN DE FECHAS =====
     setDefaultDateRange(): void {
         const end = new Date();
         const start = new Date();
-        start.setDate(start.getDate() - 30); // Últimos 30 días
-
+        start.setDate(start.getDate() - 30);
         this.endDate = end.toISOString().split('T')[0];
         this.startDate = start.toISOString().split('T')[0];
     }
 
-    // ===== GESTIÓN DEL DROPDOWN =====
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
@@ -150,15 +134,13 @@ export class StatisticsComponent implements OnInit {
         this.dropdownOpen = !this.dropdownOpen;
     }
 
-    // ===== CARGA DE DATOS =====
     loadHostAccommodations(): void {
         this.isLoadingAccommodations = true;
         this.accommodations = [];
 
         this.accommodationService.getMyAccommodations(0).subscribe({
             next: (data: any) => {
-                console.log('Alojamientos recibidos:', data);
-
+                console.log('📦 Alojamientos recibidos:', data);
                 const accommodationsArray = data?.content || data || [];
                 this.accommodations = Array.isArray(accommodationsArray) ? accommodationsArray : [];
 
@@ -172,7 +154,7 @@ export class StatisticsComponent implements OnInit {
                 this.isLoadingAccommodations = false;
             },
             error: (err) => {
-                console.error('Error cargando alojamientos:', err);
+                console.error('❌ Error cargando alojamientos:', err);
                 this.accommodations = [];
                 this.metrics = null;
                 this.isLoadingAccommodations = false;
@@ -184,11 +166,7 @@ export class StatisticsComponent implements OnInit {
 
     loadMetrics(): void {
         if (!this.selectedAccommodationId || !this.startDate || !this.endDate) {
-            console.warn('Faltan datos para cargar métricas:', {
-                accommodationId: this.selectedAccommodationId,
-                startDate: this.startDate,
-                endDate: this.endDate
-            });
+            console.warn('⚠️ Faltan datos para cargar métricas');
             return;
         }
 
@@ -196,110 +174,118 @@ export class StatisticsComponent implements OnInit {
         this.metrics = null;
         this.displayMetrics = [];
 
-        console.log('Cargando métricas para:', {
+        console.log('🔄 Cargando métricas...', {
             accommodationId: this.selectedAccommodationId,
             startDate: this.startDate,
             endDate: this.endDate
         });
 
-        this.accommodationService.getMetrics(this.selectedAccommodationId, this.startDate, this.endDate).subscribe({
+        this.accommodationService.getMetrics(
+            this.selectedAccommodationId,
+            this.startDate,
+            this.endDate
+        ).subscribe({
             next: (response: any) => {
-                console.log('Respuesta completa de métricas:', response);
+                console.log('✅ RESPUESTA COMPLETA DEL BACKEND:', response);
+                console.log('📊 Tipo de response:', typeof response);
+                console.log('📊 Keys de response:', Object.keys(response));
 
-                // Manejar diferentes estructuras de respuesta
+                // ✅ CORRECCIÓN: El backend puede devolver directamente el objeto o wrapped en "content"
                 let metricsData = null;
 
-                if (response && response.content) {
-                    metricsData = response.content;
-                } else if (response && typeof response === 'object') {
-                    metricsData = response;
-                } else if (response && response.data) {
-                    metricsData = response.data;
+                if (response) {
+                    // Si viene directamente el objeto con las propiedades
+                    if (response.totalBookings !== undefined || response.confirmedBookings !== undefined) {
+                        metricsData = response;
+                        console.log('📈 Métricas encontradas directamente en response');
+                    }
+                    // Si viene wrapped en content
+                    else if (response.content) {
+                        metricsData = response.content;
+                        console.log('📈 Métricas encontradas en response.content');
+                    }
                 }
 
                 if (metricsData) {
+                    console.log('📊 DATOS DE MÉTRICAS RAW:', metricsData);
+                    console.log('🔍 TODAS LAS PROPIEDADES DEL BACKEND:', Object.keys(metricsData));
+                    console.log('🔍 VALORES COMPLETOS:', JSON.stringify(metricsData, null, 2));
                     this.metrics = this.normalizeMetricsData(metricsData);
-                    console.log('Métricas normalizadas:', this.metrics);
+                    console.log('✨ MÉTRICAS NORMALIZADAS:', this.metrics);
                     this.adaptMetricsForDisplay();
                 } else {
-                    console.warn('No se pudieron extraer métricas de la respuesta:', response);
-                    // Crear métricas de ejemplo si no hay datos reales
-                    this.metrics = this.createSampleMetrics();
-                    this.adaptMetricsForDisplay();
+                    console.warn('⚠️ No se encontraron métricas en la respuesta');
+                    this.metrics = null;
+                    this.displayMetrics = [];
                 }
 
                 this.isLoadingMetrics = false;
             },
             error: (err) => {
-                console.error('Error cargando métricas:', err);
-                // Crear métricas de ejemplo en caso de error
-                this.metrics = this.createSampleMetrics();
-                this.adaptMetricsForDisplay();
+                console.error('❌ Error cargando métricas:', err);
+                console.error('❌ Detalles del error:', err.error);
+                this.metrics = null;
+                this.displayMetrics = [];
                 this.isLoadingMetrics = false;
 
                 Swal.fire({
-                    icon: 'info',
-                    title: 'Datos de ejemplo',
-                    text: 'No se pudieron cargar las métricas reales. Mostrando datos de ejemplo.',
-                    timer: 3000,
-                    showConfirmButton: false
+                    icon: 'error',
+                    title: 'Error al cargar métricas',
+                    text: err.error?.message || 'No se pudieron cargar las métricas.',
+                    showConfirmButton: true
                 });
             }
         });
     }
 
-    // ===== MÉTRICAS DE EJEMPLO PARA PRUEBAS =====
-    private createSampleMetrics(): AccommodationMetricsDTO {
-        const selectedAccommodation = this.accommodations.find(acc => acc.id === this.selectedAccommodationId);
-
-        // Calcular completedBookings como un subconjunto de confirmedBookings
-        const confirmedBookings = Math.floor(Math.random() * 40) + 3; // 3-43 confirmadas
-        const completedBookings = Math.floor(confirmedBookings * 0.8); // 80% de las confirmadas se completan
-
-        return {
-            accommodationId: this.selectedAccommodationId || 0,
-            accommodationName: selectedAccommodation?.title || 'Alojamiento de ejemplo',
-            totalRevenue: Math.floor(Math.random() * 10000000) + 500000, // $500,000 - $10,500,000 COP
-            totalBookings: Math.floor(Math.random() * 50) + 5, // 5-55 reservas
-            confirmedBookings: confirmedBookings,
-            cancelledBookings: Math.floor(Math.random() * 10) + 1, // 1-11 canceladas
-            pendingBookings: Math.floor(Math.random() * 5), // 0-5 pendientes
-            completedBookings: completedBookings, // Incluir completedBookings
-            averageRating: parseFloat((Math.random() * 2 + 3).toFixed(1)), // 3.0-5.0
-            totalReviews: Math.floor(Math.random() * 30) + 5, // 5-35 reseñas
-            occupancyRate: parseFloat((Math.random() * 50 + 30).toFixed(1)), // 30%-80%
-            totalGuests: Math.floor(Math.random() * 100) + 10, // 10-110 huéspedes
-            averageBookingValue: Math.floor(Math.random() * 500000) + 200000 // $200,000 - $700,000 COP
-        };
-    }
-
-    // ===== NORMALIZACIÓN DE DATOS =====
+    // ✅ NORMALIZACIÓN MEJORADA - Maneja múltiples formatos del backend
     normalizeMetricsData(data: any): AccommodationMetricsDTO {
-        console.log('Normalizando datos:', data);
+        console.log('🔧 Normalizando datos:', data);
 
-        // Calcular totalBookings si no viene en la respuesta
-        const confirmedBookings = data.confirmedBookings || data.confirmed_bookings || data.confirmed || 0;
-        const cancelledBookings = data.cancelledBookings || data.cancelled_bookings || data.cancelled || 0;
-        const pendingBookings = data.pendingBookings || data.pending_bookings || data.pending || 0;
-        const completedBookings = data.completedBookings || data.completed_bookings || data.completed || 0;
+        // Extraer valores con múltiples posibles nombres (camelCase, snake_case, español)
+        const extractValue = (obj: any, ...keys: string[]): number => {
+            for (const key of keys) {
+                if (obj[key] !== undefined && obj[key] !== null) {
+                    const value = Number(obj[key]);
+                    console.log(`   ✓ ${key}: ${value}`);
+                    return isNaN(value) ? 0 : value;
+                }
+            }
+            console.log(`   ✗ No encontrado en: ${keys.join(', ')}`);
+            return 0;
+        };
 
-        // Si totalBookings no viene, calcularlo
-        const totalBookings = data.totalBookings || data.total_bookings || data.total ||
-            (confirmedBookings + cancelledBookings + pendingBookings + completedBookings);
+        const confirmedBookings = extractValue(data, 'confirmedBookings', 'confirmed_bookings', 'confirmed', 'reservasConfirmadas');
+        const cancelledBookings = extractValue(data, 'cancelledBookings', 'cancelled_bookings', 'cancelled', 'canceladas', 'reservasCanceladas');
+        const pendingBookings = extractValue(data, 'pendingBookings', 'pending_bookings', 'pending', 'pendientes', 'reservasPendientes');
+        const completedBookings = extractValue(data, 'completedBookings', 'completed_bookings', 'completed', 'completadas', 'reservasCompletadas');
 
-        // Calcular huéspedes reales basado en reservas confirmadas y completadas
-        const totalGuests = data.totalGuests || data.total_guests || data.guests || data.huespedes ||
-            ((confirmedBookings + completedBookings) * 2); // Estimación: 2 huéspedes por reserva
+        // Total bookings: si no viene, calcular sumando todos los estados
+        let totalBookings = extractValue(data, 'totalBookings', 'total_bookings', 'total', 'totalReservas');
+        if (totalBookings === 0) {
+            totalBookings = confirmedBookings + cancelledBookings + pendingBookings + completedBookings;
+            console.log('   📊 Total calculado:', totalBookings);
+        }
 
-        // Calcular ingresos totales
-        const totalRevenue = data.totalRevenue || data.total_revenue || data.revenue || data.ingresos || 0;
+        // Ingresos totales
+        const totalRevenue = extractValue(data, 'totalRevenue', 'total_revenue', 'revenue', 'ingresos', 'ingresosTotal', 'totalIngresos');
+
+        // Total de huéspedes
+        const totalGuests = extractValue(data, 'totalGuests', 'total_guests', 'guests', 'huespedes', 'totalHuespedes');
 
         // Calcular valor promedio por reserva
         const totalConfirmedCompleted = confirmedBookings + completedBookings;
         const averageBookingValue = totalConfirmedCompleted > 0 ?
-            totalRevenue / totalConfirmedCompleted : 0;
+            Math.round(totalRevenue / totalConfirmedCompleted) : 0;
 
-        return {
+        // Rating y reviews
+        const averageRating = extractValue(data, 'averageRating', 'average_rating', 'rating', 'calificacion', 'calificacionPromedio');
+        const totalReviews = extractValue(data, 'totalReviews', 'total_reviews', 'reviews', 'resenas', 'totalResenas');
+
+        // Tasa de ocupación
+        const occupancyRate = extractValue(data, 'occupancyRate', 'occupancy_rate', 'ocupacion', 'tasaOcupacion');
+
+        const normalized: AccommodationMetricsDTO = {
             accommodationId: data.accommodationId || data.accommodation_id || this.selectedAccommodationId || 0,
             accommodationName: data.accommodationName || data.accommodation_name || data.name || 'Alojamiento',
             totalRevenue: totalRevenue,
@@ -307,16 +293,19 @@ export class StatisticsComponent implements OnInit {
             confirmedBookings: confirmedBookings,
             cancelledBookings: cancelledBookings,
             pendingBookings: pendingBookings,
-            completedBookings: completedBookings, // Asegúrate de incluir esta propiedad
-            averageRating: data.averageRating || data.average_rating || data.rating || data.calificacion || 0,
-            totalReviews: data.totalReviews || data.total_reviews || data.reviews || data.resenas || 0,
-            occupancyRate: data.occupancyRate || data.occupancy_rate || data.ocupacion || 0,
+            completedBookings: completedBookings,
+            averageRating: averageRating,
+            totalReviews: totalReviews,
+            occupancyRate: occupancyRate,
             totalGuests: totalGuests,
             averageBookingValue: averageBookingValue
         };
+
+        console.log('✅ MÉTRICAS NORMALIZADAS:', normalized);
+        return normalized;
     }
 
-    // ===== TRANSFORMACIÓN DE DATOS - SOLO MÉTRICAS ESENCIALES =====
+    // ✅ ADAPTACIÓN MEJORADA PARA MOSTRAR
     adaptMetricsForDisplay(): void {
         if (!this.metrics) {
             this.displayMetrics = [];
@@ -324,15 +313,13 @@ export class StatisticsComponent implements OnInit {
         }
 
         const m = this.metrics;
-
-        console.log('Adaptando métricas para mostrar:', m);
+        console.log('🎨 Adaptando métricas para display:', m);
 
         // Calcular métricas derivadas
         const totalConfirmedCompleted = (m.confirmedBookings || 0) + (m.completedBookings || 0);
         const successRate = m.totalBookings > 0 ? (totalConfirmedCompleted / m.totalBookings) * 100 : 0;
         const cancellationRate = m.totalBookings > 0 ? ((m.cancelledBookings || 0) / m.totalBookings) * 100 : 0;
 
-        // MÉTRICAS ESENCIALES CON DATOS REALES
         this.displayMetrics = [
             {
                 icon: 'fas fa-calendar-check',
@@ -383,16 +370,17 @@ export class StatisticsComponent implements OnInit {
                 type: 'warning'
             }
         ];
+
+        console.log('✅ Display metrics preparadas:', this.displayMetrics);
     }
 
-    // ===== EVENTOS =====
     onAccommodationChange(): void {
-        console.log('Alojamiento cambiado:', this.selectedAccommodationId);
+        console.log('🔄 Alojamiento cambiado:', this.selectedAccommodationId);
         this.loadMetrics();
     }
 
     onDateRangeChange(): void {
-        console.log('Rango de fechas cambiado:', this.startDate, 'a', this.endDate);
+        console.log('🔄 Rango de fechas cambiado:', this.startDate, 'a', this.endDate);
         this.loadMetrics();
     }
 
@@ -406,7 +394,6 @@ export class StatisticsComponent implements OnInit {
         this.router.navigate(['/login']).then(() => window.location.reload());
     }
 
-    // ===== UTILIDADES =====
     formatNumber(value: number): string {
         if (value === undefined || value === null) return '0';
         return Math.round(value).toLocaleString('es-CO');
