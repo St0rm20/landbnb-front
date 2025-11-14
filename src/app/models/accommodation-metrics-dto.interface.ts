@@ -8,6 +8,7 @@ export interface AccommodationMetricsDTO {
     confirmedBookings: number;
     cancelledBookings: number;
     pendingBookings: number;
+    completedBookings: number;
     totalRevenue: number;
     averageBookingValue: number;
     occupancyRate: number;

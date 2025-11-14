@@ -2,6 +2,7 @@ import { Component, OnInit, AfterViewInit, HostListener } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { DomSanitizer } from '@angular/platform-browser';
 import { MapService } from '../../services/map-service';
 import { AccommodationService } from '../../services/accommodation-service.service';
 import { BookingService, BookingRequest } from '../../services/booking.service';
@@ -9,6 +10,7 @@ import { TokenService } from '../../services/token-service.service';
 import { UserService } from '../../services/user-service.service';
 import { CommentService, CommentDTO } from '../../services/comment-service';
 import { AccommodationDetailDTO } from '../../models/accommodation-detail-dto';
+import { UserDto } from '../../models/user-dto.interface';
 import Swal from 'sweetalert2';
 
 interface UnavailableDate {
@@ -50,10 +52,12 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
     currentMonth: Date = new Date();
     calendarDays: any[] = [];
 
+    // Propiedades del Navbar (actualizadas)
     isLoggedIn: boolean = false;
     userName: string = '';
     userEmail: string = '';
     userRole: string = '';
+    profilePicUrl: string = 'assets/imagenes/perfil.png';
 
     reviewsWithReplies: ReviewWithReply[] = [];
     showReviewForm: boolean = false;
@@ -85,7 +89,8 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
         private bookingService: BookingService,
         private tokenService: TokenService,
         private userService: UserService,
-        private commentService: CommentService
+        private commentService: CommentService,
+        private sanitizer: DomSanitizer
     ) {
         this.reservationForm = this.fb.group({
             guests: ['1', Validators.required]
@@ -98,12 +103,7 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
     }
 
     ngOnInit(): void {
-        this.isLoggedIn = this.tokenService.isLogged();
-        if (this.isLoggedIn) {
-            this.userEmail = this.tokenService.getEmail();
-            this.userRole = this.tokenService.getRole();
-            this.loadUserProfile();
-        }
+        this.checkAuthentication();
 
         this.route.params.subscribe(params => {
             this.accommodationId = +params['id'];
@@ -126,25 +126,137 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
         // El mapa se inicializará después de cargar los detalles
     }
 
+    // Getters para verificar roles (consistentes con Home)
+    get isHost(): boolean {
+        return this.userRole === 'HOST';
+    }
+
+    get isUser(): boolean {
+        return this.userRole === 'USER';
+    }
+
+    checkAuthentication(): void {
+        this.isLoggedIn = this.tokenService.isLogged();
+        if (this.isLoggedIn) {
+            this.userEmail = this.tokenService.getEmail();
+            this.userRole = this.tokenService.getRole();
+            this.loadUserProfile();
+        } else {
+            this.userName = '';
+            this.userEmail = '';
+            this.userRole = '';
+            this.profilePicUrl = 'assets/imagenes/perfil.png';
+        }
+    }
+
     loadUserProfile(): void {
         this.userService.getProfile().subscribe({
-            next: (data) => {
+            next: (data: UserDto) => {
                 this.userName = data.name;
+                if (data.profilePictureUrl) {
+                    this.profilePicUrl = this.fixCloudinaryUrl(data.profilePictureUrl);
+                } else {
+                    this.profilePicUrl = 'assets/imagenes/perfil.png';
+                }
             },
-            error: (error) => {
+            error: (error: any) => {
                 console.error("Error cargando perfil del usuario", error);
                 this.userName = '';
+                this.profilePicUrl = 'assets/imagenes/perfil.png';
             }
         });
+    }
+
+    private fixCloudinaryUrl(url: string | null | undefined): string {
+        if (!url || url.trim() === '' || url === 'null' || url === 'undefined') {
+            return '';
+        }
+
+        if (url.startsWith('https://')) {
+            return url;
+        }
+
+        if (url.includes('cloudinary.com') && url.startsWith('http://')) {
+            return url.replace('http://', 'https://');
+        }
+
+        if (url.startsWith('http://') && !url.includes('localhost')) {
+            return url.replace('http://', 'https://');
+        }
+
+        if (url.includes('cloudinary.com') && !url.startsWith('http')) {
+            return 'https://' + url;
+        }
+
+        return url;
+    }
+
+    handleImageError(event: Event): void {
+        const imgElement = event.target as HTMLImageElement;
+        console.warn('Error cargando imagen de perfil, usando imagen por defecto');
+        imgElement.src = 'assets/imagenes/perfil.png';
+        imgElement.onerror = null; // Prevenir bucles infinitos
+    }
+
+    // CORRECCIÓN COMPLETA: property-detail.component.ts
+
+// 1. Agregar este método después del método fixCloudinaryUrl:
+
+    private processAccommodationData(accommodation: any): AccommodationDetailDTO {
+        console.log('--- PROCESANDO ACCOMMODATION DETAIL ---');
+        console.log('ID:', accommodation.id);
+        console.log('mainImage ANTES:', accommodation.mainImage);
+        console.log('images ANTES:', accommodation.images);
+
+        let mainImageUrl = accommodation.mainImage;
+        let allImages: string[] = accommodation.images || [];
+
+        // Procesar imagen principal
+        if (mainImageUrl) {
+            console.log('Procesando mainImage...');
+            mainImageUrl = this.fixCloudinaryUrl(mainImageUrl);
+            console.log('mainImage DESPUÉS de fixCloudinaryUrl:', mainImageUrl);
+        } else {
+            console.log('No hay mainImage, buscando en images array...');
+            mainImageUrl = allImages.length > 0
+                ? this.fixCloudinaryUrl(allImages[0])
+                : '';
+            console.log('mainImage asignada desde array:', mainImageUrl);
+        }
+
+        // Procesar todas las imágenes y filtrar URLs vacías
+        allImages = allImages
+            .map(img => {
+                const fixed = this.fixCloudinaryUrl(img);
+                console.log(`Imagen array: ${img} -> ${fixed}`);
+                return fixed;
+            })
+            .filter(img => {
+                const isValid = img && img.trim() !== '';
+                console.log(`Validando imagen: ${img} -> ${isValid ? 'válida' : 'inválida'}`);
+                return isValid;
+            });
+
+        console.log('mainImage FINAL:', mainImageUrl);
+        console.log('images FINAL:', allImages);
+        console.log('--- FIN PROCESAMIENTO ---\n');
+
+        // Retornar el objeto procesado con todas las propiedades
+        return {
+            ...accommodation,
+            mainImage: mainImageUrl,
+            images: allImages
+        } as AccommodationDetailDTO;
     }
 
     loadAccommodationDetails(): void {
         this.accommodationService.getById(this.accommodationId).subscribe({
             next: (data: AccommodationDetailDTO) => {
-                this.property = data;
-                console.log('Alojamiento cargado:', this.property);
 
-                // CORREGIDO: Solo usar imágenes del DTO, no imágenes por defecto
+                this.property = this.processAccommodationData(data);
+                console.log('Alojamiento cargado y procesado:', this.property);
+
+
                 this.allImages = [];
                 if (this.property.mainImage) {
                     this.allImages.push(this.property.mainImage);
@@ -155,9 +267,11 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
                     this.allImages.push(...additionalImages);
                 }
 
+                console.log('allImages FINAL:', this.allImages);
+
                 // Guardar foto del host
                 if (this.property.host?.photoProfile) {
-                    this.hostPhotoUrl = this.property.host.photoProfile;
+                    this.hostPhotoUrl = this.fixCloudinaryUrl(this.property.host.photoProfile);
                 }
 
                 this.updateGuestsOptions();
@@ -184,11 +298,11 @@ export class PropertyDetailComponent implements OnInit, AfterViewInit {
             next: (canComment: boolean) => {
                 this.canUserLeaveReview = canComment;
                 this.isCheckingReviewPermission = false;
-                console.log('✅ Puede comentar:', canComment);
+                console.log('Puede comentar:', canComment);
                 console.log('Estado actual - isLoggedIn:', this.isLoggedIn, 'userRole:', this.userRole, 'canUserLeaveReview:', this.canUserLeaveReview);
             },
             error: (error) => {
-                console.error('❌ Error al verificar permisos de reseña:', error);
+                console.error('Error al verificar permisos de reseña:', error);
                 this.canUserLeaveReview = false;
                 this.isCheckingReviewPermission = false;
             }

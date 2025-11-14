@@ -41,8 +41,13 @@
                     </a>
                 </div>
             </div>
+
+            <!-- Imagen de perfil actualizada -->
             <a routerLink="/profile-user" class="profile-link">
-                <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
+                <img [src]="profilePicUrl"
+                     alt="Perfil"
+                     class="profile-img"
+                     (error)="handleImageError($event)">
             </a>
         </div>
     </div>

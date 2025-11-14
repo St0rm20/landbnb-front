@@ -1,11 +1,13 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+import { DomSanitizer } from '@angular/platform-browser';
 import Swal from 'sweetalert2';
 
 import { BookingService, BookingDto, PagedBookings } from '../../services/booking.service';
 import { TokenService } from '../../services/token-service.service';
 import { UserService } from '../../services/user-service.service';
+import { UserDto } from '../../models/user-dto.interface';
 
 @Component({
     selector: 'app-reservations-host',
@@ -24,6 +26,7 @@ export class ReservationsHostComponent implements OnInit {
     userName: string = '';
     userEmail: string = '';
     userRole: string = '';
+    profilePicUrl: string = 'assets/imagenes/perfil.png';
 
     // Reservations Data
     allReservations: BookingDto[] = [];
@@ -35,7 +38,8 @@ export class ReservationsHostComponent implements OnInit {
         private bookingService: BookingService,
         private tokenService: TokenService,
         private userService: UserService,
-        private router: Router
+        private router: Router,
+        private sanitizer: DomSanitizer
     ) {}
 
     ngOnInit(): void {
@@ -68,14 +72,51 @@ export class ReservationsHostComponent implements OnInit {
 
     loadUserProfile(): void {
         this.userService.getProfile().subscribe({
-            next: (data) => {
+            next: (data: UserDto) => {
                 this.userName = `${data.name} ${data.lastName}`.trim();
+                if (data.profilePictureUrl) {
+                    this.profilePicUrl = this.fixCloudinaryUrl(data.profilePictureUrl);
+                } else {
+                    this.profilePicUrl = 'assets/imagenes/perfil.png';
+                }
             },
             error: (error) => {
                 console.error('Error cargando perfil:', error);
                 this.userName = this.userEmail;
+                this.profilePicUrl = 'assets/imagenes/perfil.png';
             }
         });
+    }
+
+    private fixCloudinaryUrl(url: string | null | undefined): string {
+        if (!url || url.trim() === '' || url === 'null' || url === 'undefined') {
+            return '';
+        }
+
+        if (url.startsWith('https://')) {
+            return url;
+        }
+
+        if (url.includes('cloudinary.com') && url.startsWith('http://')) {
+            return url.replace('http://', 'https://');
+        }
+
+        if (url.startsWith('http://') && !url.includes('localhost')) {
+            return url.replace('http://', 'https://');
+        }
+
+        if (url.includes('cloudinary.com') && !url.startsWith('http')) {
+            return 'https://' + url;
+        }
+
+        return url;
+    }
+
+    handleImageError(event: Event): void {
+        const imgElement = event.target as HTMLImageElement;
+        console.warn('Error cargando imagen de perfil, usando imagen por defecto');
+        imgElement.src = 'assets/imagenes/perfil.png';
+        imgElement.onerror = null;
     }
 
     loadAllBookings(): void {

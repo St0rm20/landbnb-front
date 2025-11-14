@@ -58,8 +58,12 @@
                         </a>
                     </div>
                 </div>
+
                 <a routerLink="/profile-user" class="profile-link">
-                    <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
+                    <img [src]="profilePicUrl"
+                         alt="Perfil"
+                         class="profile-img"
+                         (error)="handleImageError($event)">
                 </a>
             </ng-container>
 
@@ -72,6 +76,7 @@
     </div>
 </nav>
 
+<!-- El resto del contenido de la página -->
 <div class="container" *ngIf="property">
     <!-- Gallery Grid - SOLO SI HAY IMÁGENES -->
     <div class="gallery-grid" *ngIf="allImages.length > 0">

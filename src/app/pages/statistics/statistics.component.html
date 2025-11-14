@@ -49,8 +49,12 @@
                 </div>
             </div>
 
+            <!-- Imagen de perfil actualizada -->
             <a routerLink="/profile-user" class="profile-link">
-                <img src="assets/imagenes/perfil.png" alt="Perfil" class="profile-img">
+                <img [src]="profilePicUrl"
+                     alt="Perfil"
+                     class="profile-img"
+                     (error)="handleImageError($event)">
             </a>
         </div>
     </div>
@@ -186,7 +190,7 @@
                                 <strong>Alojamiento:</strong> {{ metrics.accommodationName }}<br>
                                 <strong>Período:</strong> {{ startDate }} a {{ endDate }}<br>
                                 <strong>Total Reservas:</strong> {{ formatNumber(metrics.totalBookings) }}<br>
-                                <strong>Reservas Activas:</strong> {{ formatNumber(metrics.pendingBookings) }}
+                                <strong>Reservas Activas:</strong> {{ formatNumber(metrics.pendingBookings || 0) }}
                             </p>
                         </div>
                     </div>
@@ -196,14 +200,15 @@
                         </h4>
                         <div class="summary-content">
                             <p class="text-white-50">
-                                <strong>Confirmadas:</strong> {{ formatNumber(metrics.confirmedBookings) }}<br>
-                                <strong>Canceladas:</strong> {{ formatNumber(metrics.cancelledBookings) }}<br>
+                                <strong>Completadas:</strong> {{ formatNumber((metrics.confirmedBookings || 0) + (metrics.completedBookings || 0)) }}<br>
+                                <strong>Canceladas:</strong> {{ formatNumber(metrics.cancelledBookings || 0) }}<br>
                                 <strong>Valor Promedio:</strong> {{ metrics.averageBookingValue > 0 ? '$' + formatNumber(metrics.averageBookingValue) + ' COP' : '$0 COP' }}
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
+
             <!-- Estado: Sin métricas pero con alojamientos -->
             <div *ngIf="!metrics && !isLoadingMetrics && !isLoadingAccommodations && accommodations.length > 0" class="empty-state text-center py-5">
                 <div class="empty-icon">
@@ -231,7 +236,6 @@
         </div>
     </div>
 </div>
-
 
 <footer class="footer">
     <div class="footer-content">
