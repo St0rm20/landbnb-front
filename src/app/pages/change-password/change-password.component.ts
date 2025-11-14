@@ -2,7 +2,8 @@ import { Component, OnInit, HostListener } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-// import { AuthServiceService } from '../services/auth.service'; // Descomenta cuando tengas tu servicio
+import { UserService } from '../../services/user-service.service';
+import { ChangePasswordDTO } from '../../models/change-password-dto.interface';
 
 @Component({
     selector: 'app-change-password',
@@ -24,8 +25,8 @@ export class ChangePasswordComponent implements OnInit {
     dropdownOpen = false;
 
     constructor(
-        private fb: FormBuilder
-        // private authService: AuthServiceService
+        private fb: FormBuilder,
+        private userService: UserService
     ) { }
 
     ngOnInit(): void {
@@ -80,31 +81,38 @@ export class ChangePasswordComponent implements OnInit {
         this.isLoading = true;
         const { currentPassword, newPassword } = this.changePasswordForm.value;
 
-        console.log('Enviando al backend:', { currentPassword, newPassword });
+        const dto: ChangePasswordDTO = {
+            currentPassword: currentPassword,
+            newPassword: newPassword
+        };
 
-        // Simulación de llamada a API
-        setTimeout(() => {
-            this.isLoading = false;
-            this.successMessage = "¡Contraseña actualizada correctamente!";
-            this.changePasswordForm.reset();
-
-            // Para simular un error, descomenta:
-            // this.errorMessage = "La contraseña actual no es correcta.";
-        }, 1500);
-
-        /* Cuando conectes con tu backend, reemplaza el setTimeout por:
-        this.authService.changePassword(currentPassword, newPassword).subscribe({
+        this.userService.changePassword(dto).subscribe({
             next: (response) => {
                 this.isLoading = false;
-                this.successMessage = "¡Contraseña actualizada correctamente!";
+                this.successMessage = response.content || "¡Contraseña actualizada correctamente!";
                 this.changePasswordForm.reset();
+
+                // Limpiar el mensaje de éxito después de 5 segundos
+                setTimeout(() => {
+                    this.successMessage = null;
+                }, 5000);
             },
             error: (error) => {
                 this.isLoading = false;
-                this.errorMessage = error.error?.message || "Error al cambiar la contraseña.";
+                console.error('Error al cambiar contraseña:', error);
+
+                // Manejo detallado de errores
+                if (error.status === 401) {
+                    this.errorMessage = "La contraseña actual no es correcta.";
+                } else if (error.status === 400) {
+                    this.errorMessage = error.error?.message || "Datos inválidos. Verifica la información ingresada.";
+                } else if (error.status === 0) {
+                    this.errorMessage = "Error de conexión. Verifica tu internet.";
+                } else {
+                    this.errorMessage = error.error?.message || "Error al cambiar la contraseña. Inténtalo nuevamente.";
+                }
             }
         });
-        */
     }
 
     /**
