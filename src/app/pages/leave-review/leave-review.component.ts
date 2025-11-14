@@ -130,8 +130,7 @@ export class LeaveReviewComponent implements OnInit {
         const reviewRequest: ReviewRequest = {
             bookingId: this.bookingId || 0, // Si no hay bookingId, usar 0 (ajustar según tu backend)
             rating: this.rating,
-            comment: this.comment.trim(),
-            accommodationId: this.accommodationId
+            text: this.comment.trim()
         };
 
         console.log('Enviando reseña:', reviewRequest);

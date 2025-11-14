@@ -5,9 +5,9 @@ import { Observable } from 'rxjs';
 export interface ReviewRequest {
     bookingId: number;
     rating: number;
-    comment: string;
-    accommodationId: number;
+    text: string;
 }
+
 
 export interface CommentDTO {
     id: number;
@@ -39,6 +39,17 @@ export class CommentService {
 
     constructor(private http: HttpClient) { }
 
+
+    /** Verifica si el usuario puede comentar un alojamiento */
+    canUserComment(accommodationId: number): Observable<boolean> {
+        return this.http.get<boolean>(`${this.apiUrl}/can-comment/${accommodationId}`);
+    }
+
+    /** Verifica si el usuario HOST puede responder un comentario */
+    canUserReply(commentId: number): Observable<boolean> {
+        return this.http.get<boolean>(`${this.apiUrl}/can-reply/${commentId}`);
+    }
+
     createReview(reviewRequest: ReviewRequest): Observable<any> {
         return this.http.post(`${this.apiUrl}`, reviewRequest);
     }
@@ -56,6 +67,7 @@ export class CommentService {
     }
 
     replyToComment(commentId: number, message: string): Observable<CommentDTO> {
+        console.log("🔄 [SERVICE] Enviando respuesta al comentario:", { commentId, message });
         return this.http.post<CommentDTO>(`${this.apiUrl}/reply`, {
             commentId: commentId,
             message: message

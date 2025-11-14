@@ -73,10 +73,10 @@
 </nav>
 
 <div class="container" *ngIf="property">
-    <!-- Gallery Grid -->
-    <div class="gallery-grid">
+    <!-- Gallery Grid - SOLO SI HAY IMÁGENES -->
+    <div class="gallery-grid" *ngIf="allImages.length > 0">
         <div class="gallery-item-1" (click)="openImageModal(0)">
-            <img [src]="allImages[0] || 'assets/imagenes/hostal2.jpg.avif'" [alt]="property.title">
+            <img [src]="allImages[0]" [alt]="property.title">
         </div>
         <div class="gallery-item-2" *ngIf="allImages[1]" (click)="openImageModal(1)">
             <img [src]="allImages[1]" [alt]="property.title">
@@ -87,8 +87,8 @@
         <div class="gallery-item-4" *ngIf="allImages[3]" (click)="openImageModal(3)">
             <img [src]="allImages[3]" [alt]="property.title">
         </div>
-        <div class="gallery-item-5" (click)="openImageModal(4)">
-            <img [src]="allImages[4] || 'assets/imagenes/hostal2.jpg.avif'" [alt]="property.title">
+        <div class="gallery-item-5" *ngIf="allImages[4]" (click)="openImageModal(4)">
+            <img [src]="allImages[4]" [alt]="property.title">
             <div class="more-images-overlay" *ngIf="hasMoreImages()">
                 <i class="fas fa-images"></i>
                 <span>+{{ getRemainingImagesCount() }} fotos más</span>
@@ -129,7 +129,7 @@
                     <h2>Alojamiento completo</h2>
                     <p>{{ property.maxCapacity }} huéspedes</p>
                 </div>
-                <img [src]="property.host.photoProfile || 'assets/imagenes/perfil.png'"
+                <img [src]="hostPhotoUrl || 'assets/imagenes/perfil.png'"
                      [alt]="property.host.name"
                      class="host-avatar">
             </div>
@@ -167,31 +167,46 @@
             <!-- Sección de Reseñas -->
             <div class="section">
                 <div class="reviews-header">
-                    <h2><i class="fas fa-star" style="color: #ffc107;"></i> {{ property.averageRating || 'Nuevo' }} · {{ reviews.length }} reseñas</h2>
+                    <h2>
+                        <i class="fas fa-star" style="color: #ffc107;"></i>
+                        {{ property.averageRating || 'Nuevo' }} · {{ reviewsWithReplies.length }} reseñas
+                    </h2>
 
-                    <button class="btn-primary" (click)="openReviewForm()" *ngIf="canUserReview()">
+                    <!-- Indicador de carga mientras verifica permisos -->
+                    <div *ngIf="isCheckingReviewPermission" style="padding: 0.75rem; color: #666;">
+                        <i class="fas fa-spinner fa-spin"></i> Verificando...
+                    </div>
+
+                    <!-- Botón de dejar reseña - Solo si el usuario PUEDE comentar -->
+                    <button
+                            class="btn-primary"
+                            (click)="openReviewForm()"
+                            *ngIf="!isCheckingReviewPermission && canUserLeaveReview">
                         <i class="fas fa-edit"></i> Dejar Reseña
                     </button>
-
-                    <div class="review-not-allowed" *ngIf="isLoggedIn && !canUserReview() && reviews.length > 0">
-                        <i class="fas fa-info-circle"></i>
-                        <p>Para dejar una reseña, necesitas haber completado una reserva en este alojamiento</p>
-                    </div>
                 </div>
 
-                <!-- Formulario de Reseña -->
+                <!-- Mensaje si no puede reseñar (solo si está logueado y ya verificó) -->
+                <div class="review-not-allowed" *ngIf="isLoggedIn && !canUserLeaveReview && !isCheckingReviewPermission">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Para dejar una reseña, necesitas haber completado una reserva en este alojamiento</p>
+                </div>
+
+                <!-- Formulario de Reseña MEJORADO -->
                 <div class="review-form-container" *ngIf="showReviewForm">
-                    <h3>Deja tu reseña</h3>
+                    <h3><i class="fas fa-star" style="color: #ffc107;"></i> Comparte tu experiencia</h3>
 
                     <form [formGroup]="reviewForm" (ngSubmit)="onSubmitReview()" class="review-form">
-                        <!-- Rating Stars -->
+                        <!-- Rating Stars MEJORADO -->
                         <div class="rating-section">
-                            <label class="form-label">Calificación</label>
+                            <label class="form-label">¿Cómo calificarías tu estadía?</label>
                             <div class="star-rating">
                                 <div
                                         *ngFor="let star of [1,2,3,4,5]; let i = index"
                                         class="star-container"
-                                        (click)="setReviewRating(star)">
+                                        (click)="setReviewRating(star)"
+                                        (mouseenter)="reviewRating >= star ? null : reviewRating = star"
+                                        (mouseleave)="reviewForm.value.rating ? reviewRating = reviewForm.value.rating : reviewRating = 0">
                                     <i [class]="reviewRating >= star ? 'fas fa-star active' : 'far fa-star'"></i>
                                 </div>
                             </div>
@@ -199,21 +214,23 @@
                                 {{ getRatingText(reviewRating) }}
                             </div>
                             <div class="error-message" *ngIf="reviewForm.get('rating')?.touched && reviewForm.get('rating')?.errors?.['required']">
-                                La calificación es requerida
+                                Por favor selecciona una calificación
                             </div>
                         </div>
 
-                        <!-- Comment Textarea -->
+                        <!-- Comment Textarea MEJORADO -->
                         <div class="form-group">
-                            <label class="form-label">Comentario</label>
+                            <label class="form-label">Cuéntanos sobre tu experiencia</label>
                             <textarea
                                     class="form-textarea"
                                     formControlName="comment"
-                                    placeholder="Comparte tu experiencia en este alojamiento..."
-                                    rows="5"
+                                    placeholder="¿Qué te gustó más? ¿Algo que mejorarías? Comparte los detalles de tu estadía..."
+                                    rows="6"
                                     maxlength="1000">
                             </textarea>
-                            <div class="char-counter">
+                            <div class="char-counter"
+                                 [class.warning]="(reviewForm.get('comment')?.value?.length || 0) > 900"
+                                 [class.error]="(reviewForm.get('comment')?.value?.length || 0) === 1000">
                                 {{ reviewForm.get('comment')?.value?.length || 0 }}/1000 caracteres
                             </div>
                             <div class="error-message" *ngIf="reviewForm.get('comment')?.touched && reviewForm.get('comment')?.errors?.['required']">
@@ -231,42 +248,88 @@
                                     class="btn-primary submit-btn"
                                     [disabled]="isSubmittingReview || reviewForm.invalid">
                                 <i class="fas fa-spinner fa-spin" *ngIf="isSubmittingReview"></i>
+                                <i class="fas fa-paper-plane" *ngIf="!isSubmittingReview"></i>
                                 {{ isSubmittingReview ? 'Enviando...' : 'Publicar Reseña' }}
                             </button>
-                            <button type="button" class="btn-secondary" (click)="closeReviewForm()">Cancelar</button>
+                            <button type="button" class="btn-secondary" (click)="closeReviewForm()">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
                         </div>
                     </form>
                 </div>
 
-                <!-- Lista de Reseñas -->
+                <!-- Lista de Reseñas CON RESPUESTAS Y FOTOS -->
                 <div class="reviews-grid">
-                    <div class="review-card" *ngFor="let review of reviews">
+                    <div class="review-card" *ngFor="let item of reviewsWithReplies; let i = index">
                         <div class="review-header">
-                            <img [src]="review.usuario.photoProfile || 'assets/imagenes/perfil.png'"
-                                 [alt]="review.usuario.name"
+                            <img [src]="item.userPhotoUrl || 'assets/imagenes/perfil.png'"
+                                 [alt]="item.review.usuario.name"
                                  class="review-avatar">
                             <div class="review-user">
-                                <h4>{{ review.usuario.name }}</h4>
-                                <div class="review-date">{{ formatReviewDate(review.fechaCreacion) }}</div>
-                            </div>
-                            <div class="review-stars">
-                                <i class="fas fa-star" *ngFor="let star of getStars(review.calificacion)"></i>
-                                <i class="far fa-star" *ngFor="let star of getEmptyStars(review.calificacion)"></i>
+                                <h4>{{ item.review.usuario.name }}</h4>
+                                <div class="review-date">{{ formatReviewDate(item.review.fechaCreacion) }}</div>
+                                <div class="review-stars">
+                                    <i class="fas fa-star" *ngFor="let star of getStars(item.review.calificacion)"></i>
+                                    <i class="far fa-star" *ngFor="let star of getEmptyStars(item.review.calificacion)"></i>
+                                </div>
                             </div>
                         </div>
-                        <p class="review-comment">{{ review.texto }}</p>
+                        <p class="review-comment">{{ item.review.texto }}</p>
 
-                        <div class="host-reply" *ngIf="review.respuestaAnfitrion">
-                            <div class="reply-header">
-                                <strong>Respuesta del anfitrión:</strong>
+                        <!-- Botón para responder (solo HOST y si tiene permiso) -->
+                        <div class="review-actions" *ngIf="item.canReply && !item.review.respuestaAnfitrion">
+                            <button class="btn-reply" (click)="toggleReplyForm(i)">
+                                <i class="fas fa-reply"></i> Responder
+                            </button>
+                        </div>
+
+                        <!-- Formulario de respuesta -->
+                        <div class="host-reply-form" *ngIf="item.showReplyForm">
+                            <textarea
+                                    [(ngModel)]="item.replyText"
+                                    placeholder="Escribe tu respuesta..."
+                                    rows="3"
+                                    [disabled]="item.isSubmittingReply"
+                                    class="reply-textarea">
+                            </textarea>
+                            <div class="reply-actions">
+                                <button
+                                        class="btn-primary btn-sm"
+                                        (click)="submitReply(i)"
+                                        [disabled]="item.isSubmittingReply || !item.replyText || item.replyText.trim().length < 10">
+                                    <i class="fas fa-spinner fa-spin" *ngIf="item.isSubmittingReply"></i>
+                                    {{ item.isSubmittingReply ? 'Enviando...' : 'Enviar' }}
+                                </button>
+                                <button
+                                        class="btn-secondary btn-sm"
+                                        (click)="toggleReplyForm(i)"
+                                        [disabled]="item.isSubmittingReply">
+                                    Cancelar
+                                </button>
                             </div>
-                            <p class="reply-text">{{ review.respuestaAnfitrion }}</p>
+                        </div>
+
+                        <!-- Respuesta del anfitrión -->
+                        <div class="host-reply" *ngIf="item.review.respuestaAnfitrion">
+                            <div class="reply-header">
+                                <img [src]="hostPhotoUrl || 'assets/imagenes/perfil.png'"
+                                     [alt]="property.host.name"
+                                     class="reply-avatar">
+                                <div>
+                                    <strong>Respuesta de {{ property.host.name }} {{ property.host.lastName }}</strong>
+                                    <span class="host-badge">Anfitrión</span>
+                                </div>
+                            </div>
+                            <p class="reply-text">{{ item.review.respuestaAnfitrion }}</p>
                         </div>
                     </div>
 
-                    <div class="no-reviews" *ngIf="reviews.length === 0">
+                    <div class="no-reviews" *ngIf="reviewsWithReplies.length === 0">
                         <i class="far fa-comments"></i>
                         <p>Este alojamiento aún no tiene reseñas</p>
+                        <p *ngIf="canUserLeaveReview" style="font-size: 0.9rem; color: #999;">
+                            ¡Sé el primero en compartir tu experiencia!
+                        </p>
                     </div>
                 </div>
             </div>
@@ -391,7 +454,7 @@
 </div>
 
 <!-- Modal de Galería de Imágenes -->
-<div class="image-modal" *ngIf="showImageModal" (click)="closeImageModal()">
+<div class="image-modal" *ngIf="showImageModal && allImages.length > 0" (click)="closeImageModal()">
     <div class="image-modal-content" (click)="$event.stopPropagation()">
         <button class="modal-close-btn" (click)="closeImageModal()">
             <i class="fas fa-times"></i>
