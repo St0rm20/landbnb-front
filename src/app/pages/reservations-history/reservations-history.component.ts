@@ -1,16 +1,18 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import Swal from 'sweetalert2';
 
 import { BookingService, BookingDto } from '../../services/booking.service';
 import { TokenService } from '../../services/token-service.service';
 import { UserService } from '../../services/user-service.service';
+import { CommentService, ReviewRequest } from '../../services/comment-service';
 
 @Component({
     selector: 'app-reservations-history',
     standalone: true,
-    imports: [CommonModule, RouterModule],
+    imports: [CommonModule, RouterModule, FormsModule],
     templateUrl: './reservations-history.component.html',
     styleUrls: ['./reservations-history.component.css']
 })
@@ -37,13 +39,13 @@ export class ReservationsHistoryComponent implements OnInit {
         private bookingService: BookingService,
         private tokenService: TokenService,
         private userService: UserService,
+        private commentService: CommentService,
         private router: Router
     ) {}
 
     ngOnInit(): void {
         console.log('📋 Componente de historial de reservas cargado');
 
-        // Verificar autenticación
         if (!this.tokenService.isLogged()) {
             this.router.navigate(['/login']);
             return;
@@ -101,9 +103,8 @@ export class ReservationsHistoryComponent implements OnInit {
 
         this.bookingService.getUserBookings().subscribe({
             next: (response: any) => {
-                console.log(' Respuesta completa del servicio:', response);
+                console.log('✅ Respuesta completa del servicio:', response);
 
-                // Manejar diferentes estructuras de respuesta
                 if (response && Array.isArray(response)) {
                     this.allReservations = response;
                 } else if (response && response.content && Array.isArray(response.content)) {
@@ -118,7 +119,7 @@ export class ReservationsHistoryComponent implements OnInit {
                 this.isLoading = false;
             },
             error: (error) => {
-                console.error(' Error cargando reservas:', error);
+                console.error('❌ Error cargando reservas:', error);
                 this.allReservations = [];
                 this.isLoading = false;
                 this.showError('No se pudieron cargar tus reservas');
@@ -149,36 +150,30 @@ export class ReservationsHistoryComponent implements OnInit {
                 accommodation: booking.accommodation?.title
             });
 
-            // 1. Reservas canceladas
             if (status === 'CANCELLED' || status === 'CANCELED') {
                 this.canceledReservations.push(booking);
-                console.log(`   Categorizada como CANCELADA`);
+                console.log(`   ➡️ Categorizada como CANCELADA`);
                 return;
             }
 
-            // 2. Reservas completadas
             if (status === 'COMPLETED') {
                 this.pastReservations.push(booking);
-                console.log(`   Categorizada como PASADA (COMPLETED)`);
+                console.log(`   ➡️ Categorizada como PASADA (COMPLETED)`);
                 return;
             }
 
-            // 3. Para CONFIRMED y PENDING, verificar fechas
             if (status === 'CONFIRMED' || status === 'PENDING') {
                 if (checkOutDate < today) {
-                    // Ya pasó la fecha de checkout
                     this.pastReservations.push(booking);
-                    console.log(`   Categorizada como PASADA (checkout pasado)`);
+                    console.log(`   ➡️ Categorizada como PASADA (checkout pasado)`);
                 } else {
-                    // Todavía está vigente
                     this.activeReservations.push(booking);
-                    console.log(`  Categorizada como ACTIVA`);
+                    console.log(`  ✅ Categorizada como ACTIVA`);
                 }
                 return;
             }
 
-            // 4. Estado desconocido - categorizar por fecha
-            console.warn(`  ESTADO DESCONOCIDO: ${status}`);
+            console.warn(`⚠️  ESTADO DESCONOCIDO: ${status}`);
             if (checkOutDate < today) {
                 this.pastReservations.push(booking);
             } else {
@@ -187,9 +182,9 @@ export class ReservationsHistoryComponent implements OnInit {
         });
 
         console.log('=== RESUMEN FINAL ===');
-        console.log(' Activas:', this.activeReservations.length);
-        console.log(' Pasadas:', this.pastReservations.length);
-        console.log('Canceladas:', this.canceledReservations.length);
+        console.log('✅ Activas:', this.activeReservations.length);
+        console.log('📜 Pasadas:', this.pastReservations.length);
+        console.log('❌ Canceladas:', this.canceledReservations.length);
     }
 
     private parseDate(dateString: string): Date {
@@ -209,11 +204,9 @@ export class ReservationsHistoryComponent implements OnInit {
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const checkInDate = this.parseDate(booking.checkInDate);
 
-        // Calcular la diferencia en días
         const diffTime = checkInDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        // Puede cancelar si faltan 2 o más días para el check-in
         return diffDays >= 2;
     }
 
@@ -236,7 +229,6 @@ export class ReservationsHistoryComponent implements OnInit {
     cancelReservation(booking: BookingDto): void {
         const daysUntilCheckIn = this.getDaysUntilCheckIn(booking);
 
-        // Verificar si puede cancelar
         if (!this.canCancelReservation(booking)) {
             Swal.fire({
                 icon: 'warning',
@@ -252,7 +244,6 @@ export class ReservationsHistoryComponent implements OnInit {
             return;
         }
 
-        // Confirmar cancelación
         Swal.fire({
             icon: 'warning',
             title: '¿Cancelar esta reserva?',
@@ -282,11 +273,10 @@ export class ReservationsHistoryComponent implements OnInit {
                             showConfirmButton: true
                         });
 
-                        // Recargar las reservas
                         this.loadAllBookings();
                     },
                     error: (error) => {
-                        console.error(' Error cancelando reserva:', error);
+                        console.error('❌ Error cancelando reserva:', error);
                         this.isLoading = false;
                         this.showError(
                             error.error?.content ||
@@ -299,24 +289,166 @@ export class ReservationsHistoryComponent implements OnInit {
     }
 
     viewAccommodation(booking: BookingDto): void {
+        console.log('🏠 Navegando al alojamiento:', booking.accommodation);
         if (booking.accommodation?.id) {
-            this.router.navigate(['/property-detail', booking.accommodation.id]);
+            console.log('📍 ID del alojamiento:', booking.accommodation.id);
+            this.router.navigate(['/detalle-alojamiento', booking.accommodation.id]).then(
+                () => console.log('✅ Navegación exitosa'),
+                (error) => console.error('❌ Error en navegación:', error)
+            );
+        } else {
+            console.error('❌ No se encontró ID del alojamiento');
+            this.showError('No se pudo cargar la información del alojamiento');
         }
     }
 
-    leaveReview(booking: BookingDto): void {
-        Swal.fire({
-            icon: 'info',
-            title: 'Dejar Reseña',
+    async leaveReview(booking: BookingDto): Promise<void> {
+        const { value: formValues } = await Swal.fire({
+            title: 'Dejar una Reseña',
             html: `
-                <div class="text-left" style="color: #333;">
-                    <p>Próximamente podrás dejar una reseña para:</p>
-                    <p class="mt-3"><strong>${booking.accommodation.title}</strong></p>
-                    <p>Check-out: ${this.formatDate(booking.checkOutDate)}</p>
+                <div style="text-align: left;">
+                    <p style="margin-bottom: 10px;"><strong>${booking.accommodation.title}</strong></p>
+                    <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
+                        Estadía: ${this.formatDate(booking.checkInDate)} - ${this.formatDate(booking.checkOutDate)}
+                    </p>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Calificación:</label>
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            <button type="button" class="rating-btn" data-rating="1" style="font-size: 30px; background: none; border: none; cursor: pointer; color: #ddd;">★</button>
+                            <button type="button" class="rating-btn" data-rating="2" style="font-size: 30px; background: none; border: none; cursor: pointer; color: #ddd;">★</button>
+                            <button type="button" class="rating-btn" data-rating="3" style="font-size: 30px; background: none; border: none; cursor: pointer; color: #ddd;">★</button>
+                            <button type="button" class="rating-btn" data-rating="4" style="font-size: 30px; background: none; border: none; cursor: pointer; color: #ddd;">★</button>
+                            <button type="button" class="rating-btn" data-rating="5" style="font-size: 30px; background: none; border: none; cursor: pointer; color: #ddd;">★</button>
+                        </div>
+                        <input type="hidden" id="rating-value" value="0">
+                    </div>
+                    
+                    <div>
+                        <label for="review-text" style="display: block; margin-bottom: 8px; font-weight: 600;">Comentario:</label>
+                        <textarea 
+                            id="review-text" 
+                            class="swal2-textarea" 
+                            placeholder="Cuéntanos sobre tu experiencia..."
+                            style="width: 100%; min-height: 120px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"
+                        ></textarea>
+                    </div>
                 </div>
             `,
-            confirmButtonText: 'Cerrar'
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Enviar Reseña',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#4a675f',
+            cancelButtonColor: '#6c757d',
+            didOpen: () => {
+                const ratingButtons = document.querySelectorAll('.rating-btn');
+                const ratingInput = document.getElementById('rating-value') as HTMLInputElement;
+
+                ratingButtons.forEach((btn) => {
+                    btn.addEventListener('click', (e) => {
+                        const target = e.currentTarget as HTMLElement;
+                        const rating = parseInt(target.getAttribute('data-rating') || '0');
+                        ratingInput.value = rating.toString();
+
+                        ratingButtons.forEach((b, index) => {
+                            const button = b as HTMLElement;
+                            if (index < rating) {
+                                button.style.color = '#ffc107';
+                            } else {
+                                button.style.color = '#ddd';
+                            }
+                        });
+                    });
+                });
+            },
+            preConfirm: () => {
+                const rating = parseInt((document.getElementById('rating-value') as HTMLInputElement).value);
+                const text = (document.getElementById('review-text') as HTMLTextAreaElement).value;
+
+                if (rating === 0) {
+                    Swal.showValidationMessage('Por favor selecciona una calificación');
+                    return null;
+                }
+
+                if (!text || text.trim().length < 10) {
+                    Swal.showValidationMessage('El comentario debe tener al menos 10 caracteres');
+                    return null;
+                }
+
+                return { rating, text };
+            }
         });
+
+        if (formValues) {
+            const reviewRequest: ReviewRequest = {
+                bookingId: booking.id,
+                rating: formValues.rating,
+                text: formValues.text
+            };
+
+            console.log('📝 Enviando reseña:', reviewRequest);
+
+            // Mostrar loading
+            Swal.fire({
+                title: 'Enviando reseña...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            this.commentService.createReview(reviewRequest).subscribe({
+                next: (response) => {
+                    console.log('✅ Reseña creada exitosamente:', response);
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Reseña Enviada!',
+                        text: 'Tu reseña ha sido publicada exitosamente. ¡Gracias por compartir tu experiencia!',
+                        confirmButtonText: 'Cerrar',
+                        confirmButtonColor: '#4a675f'
+                    });
+                },
+                error: (error) => {
+                    console.error('❌ Error completo:', error);
+                    console.error('❌ Error status:', error.status);
+                    console.error('❌ Error message:', error.message);
+                    console.error('❌ Error error:', error.error);
+
+                    let errorMessage = 'No se pudo enviar tu reseña. Por favor, intenta de nuevo.';
+
+                    if (error.error) {
+                        if (typeof error.error === 'string') {
+                            errorMessage = error.error;
+                        } else if (error.error.message) {
+                            errorMessage = error.error.message;
+                        } else if (error.error.content) {
+                            errorMessage = error.error.content;
+                        }
+                    } else if (error.message) {
+                        errorMessage = error.message;
+                    }
+
+                    if (error.status === 0) {
+                        errorMessage = 'No se pudo conectar con el servidor. Verifica tu conexión.';
+                    } else if (error.status === 404) {
+                        errorMessage = 'El servicio de comentarios no está disponible.';
+                    } else if (error.status === 400) {
+                        errorMessage = errorMessage || 'Datos inválidos. Verifica la información.';
+                    } else if (error.status === 403) {
+                        errorMessage = 'No tienes permiso para dejar esta reseña.';
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al Enviar Reseña',
+                        text: errorMessage,
+                        confirmButtonText: 'Cerrar',
+                        confirmButtonColor: '#d33'
+                    });
+                }
+            });
+        }
     }
 
     // ===== UTILIDADES =====
@@ -428,7 +560,6 @@ export class ReservationsHistoryComponent implements OnInit {
         return this.userRole === 'USER';
     }
 
-    // Nuevo método para obtener nombre completo del usuario
     getUserFullName(): string {
         return this.userName || 'Usuario';
     }

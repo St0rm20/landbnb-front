@@ -151,6 +151,62 @@ body {
     margin: 0.5rem 0;
 }
 
+
+
+.host-reply {
+    /* Usa Flexbox para controlar el flujo interno de los elementos */
+    display: flex;
+    flex-direction: column; /* Asegura que el header y el texto de respuesta estén uno encima del otro */
+    padding: 10px;
+    border: 1px solid #ccc; /* Un borde para distinguirlo mejor, puedes ajustarlo */
+    border-radius: 8px; /* Opcional: bordes redondeados para la caja principal */
+}
+
+.reply-header {
+    /* Usa Flexbox para alinear la imagen (avatar) y el contenedor de texto horizontalmente */
+    display: flex;
+    align-items: flex-start; /* Alinea los elementos al inicio del eje transversal (arriba) */
+    gap: 10px; /* Espacio entre el avatar y el texto */
+    margin-bottom: 10px; /* Espacio entre el encabezado y el texto de respuesta */
+}
+
+.reply-avatar {
+    /* Estilo para la imagen del anfitrión */
+    width: 40px; /* Ajusta el tamaño según necesites */
+    height: 40px;
+    border-radius: 50%; /* ✨ ¡Borde circular para la imagen! */
+    object-fit: cover; /* Asegura que la imagen cubra el área sin distorsionarse */
+    flex-shrink: 0; /* Evita que la imagen se reduzca si hay poco espacio */
+}
+
+.reply-header div {
+    /* Contenedor del nombre y el badge */
+    display: flex;
+    flex-direction: column; /* Apila el nombre y el badge si quieres que estén en líneas separadas */
+    /* Si quieres que estén en la misma línea:
+    display: flex;
+    align-items: center;
+    */
+}
+
+.host-badge {
+    /* Estilo para la insignia de "Anfitrión" */
+    margin-left: 8px; /* ✨ Espacio entre el nombre del anfitrión y la palabra "Anfitrión" */
+    padding: 2px 6px;
+    background-color: #f0f0f0; /* Color de fondo opcional para el badge */
+    border-radius: 4px;
+    font-size: 0.8em;
+    color: #555;
+    /* Si el nombre y el badge están en la misma línea, quita el 'margin-left' del badge
+       y aplícalo al elemento que contiene el 'strong' y el 'span' */
+}
+
+.reply-text {
+    /* Estilo para el texto de la respuesta */
+    margin-top: 0; /* Asegura que no haya un margen superior extra */
+    padding-left: 50px; /* Opcional: Mueve el texto de respuesta para que se alinee con el texto del encabezado, asumiendo 40px de avatar + 10px de gap */
+}
+
 .dropdown-item {
     color: var(--text-secondary);
     padding: 0.5rem 1.25rem;
