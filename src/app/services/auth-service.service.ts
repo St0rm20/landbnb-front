@@ -14,7 +14,7 @@
     })
     export class AuthService {
 
-        private authURL = "http://localhost:8080/api/auth";
+        private authURL = "https://land-bnb-production.up.railway.app/api/auth";
 
         constructor(private http: HttpClient) { }
 

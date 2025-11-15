@@ -13,7 +13,7 @@ import { UserDto } from '../models/user-dto.interface';
 })
 export class UserService {
 
-    private usersURL = "http://localhost:8080/api/users";
+    private usersURL = "https://land-bnb-production.up.railway.app/api/users";
 
     constructor(private http: HttpClient) { }
 

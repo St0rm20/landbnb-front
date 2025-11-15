@@ -8,7 +8,7 @@ import { ResponseDTO } from '../models/response-dto.interface';
 })
 export class ImageService {
 
-    private imageUrl = "http://localhost:8080/api/images";
+    private imageUrl = "https://land-bnb-production.up.railway.app/api/images";
 
     constructor(private http: HttpClient) { }
 

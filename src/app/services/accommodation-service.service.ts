@@ -14,8 +14,8 @@ import { SearchAccommodationDTO } from '../models/search-accommodation-dto.inter
 })
 export class AccommodationService {
 
-    private accommodationURL = "http://localhost:8080/api/accommodations";
-    private apiUrl = "http://localhost:8080/api/accommodations";
+    private accommodationURL = "https://land-bnb-production.up.railway.app/accommodations";
+    private apiUrl = "https://land-bnb-production.up.railway.app/api/accommodations";
 
     constructor(private http: HttpClient) { }
 
