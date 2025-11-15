@@ -26,7 +26,7 @@ body {
     z-index: -1;
 }
 
-/* Navbar Styles */
+/* Navbar Styles - Copiar desde home.component.css */
 .navbar {
     background-color: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(5px);
@@ -53,19 +53,122 @@ body {
     align-items: center;
     text-decoration: none;
 }
+
 .logo-img {
     height: 40px;
     width: auto;
-    object-fit: contain;
 }
 
-.brand-text {
+.brand-name {
+    font-size: 1.1rem;
+    font-weight: bold;
     color: #b97479;
+    margin-left: 8px;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.host-link {
+    color: #333;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.host-link:hover {
+    color: #b97479;
+}
+
+.dropdown {
+    position: relative;
+}
+
+.menu-icon {
+    color: #333;
+    text-decoration: none;
+    font-size: 1.1rem;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.menu-icon:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #2a2a2a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    padding: 0.5rem 0;
+    min-width: 220px;
+    display: none;
+    z-index: 1001;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-header {
+    color: #FFFFFF;
+    font-weight: bold;
+    padding: 0.75rem 1.25rem 0.5rem;
+    font-size: 0.9rem;
+}
+
+.dropdown-divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 0.5rem 0;
+}
+
+.dropdown-item {
+    color: #E0E0E0;
+    padding: 0.5rem 1.25rem;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+}
+
+.dropdown-item i {
+    width: 20px;
+    margin-right: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.dropdown-item.logout {
+    color: #ff6347;
+}
+
+.dropdown-item.logout:hover {
+    background-color: rgba(255, 99, 71, 0.15);
+    color: #ff7e6b;
+}
+
+.profile-link {
+    text-decoration: none;
 }
 
 .profile-img {
     width: 40px;
     height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
 /* Cards */

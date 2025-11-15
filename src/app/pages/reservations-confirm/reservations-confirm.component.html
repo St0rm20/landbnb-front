@@ -1,16 +1,78 @@
 <div class="body-overlay"></div>
 
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg bg-light border-bottom shadow-sm">
-    <div class="container-fluid d-flex justify-content-between align-items-center py-2 px-5">
-        <a class="navbar-brand d-flex align-items-center" routerLink="/">
+<!-- Navbar completo funcional - CORREGIDO -->
+<nav class="navbar">
+    <div class="nav-container">
+        <a class="nav-brand" routerLink="/home">
             <img src="../../../assets/imagenes/logo.png" alt="Logo Landbnb" class="logo-img">
-            <span class="fs-6 fw-bold brand-text">Landbnb</span>
+            <span class="brand-name">Landbnb</span>
         </a>
-        <div class="d-flex align-items-center ms-auto">
-            <a (click)="goToProfile()" class="cursor-pointer">
-                <img [src]="bookingData?.user?.photoProfile || 'assets/imagenes/perfil.png'" alt="Perfil" class="rounded-circle profile-img">
-            </a>
+
+        <div class="nav-right">
+            <ng-container *ngIf="isLoggedIn">
+                <a *ngIf="isUser" class="nav-link host-link" routerLink="/become-host">
+                    Conviértete en anfitrión
+                </a>
+
+                <a *ngIf="isHost" class="nav-link host-link" routerLink="/create-place">
+                    Crear Alojamiento
+                </a>
+                <a *ngIf="isHost" class="nav-link host-link" routerLink="/host-properties">
+                    Mis Alojamientos
+                </a>
+
+                <div class="dropdown">
+                    <a href="#" class="menu-icon" (click)="toggleDropdown($event)">
+                        <i class="fas fa-bars"></i>
+                    </a>
+                    <div class="dropdown-menu" [class.show]="dropdownOpen">
+                        <h6 class="dropdown-header">Hola, {{ userName || userEmail }}</h6>
+
+                        <ng-container *ngIf="isHost">
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" routerLink="/host-properties">
+                                <i class="fas fa-tachometer-alt"></i>Panel de Anfitrión
+                            </a>
+                            <a class="dropdown-item" routerLink="/reservations-host">
+                                <i class="fas fa-calendar-alt"></i>Reservas
+                            </a>
+                            <a class="dropdown-item" routerLink="/statistics">
+                                <i class="fas fa-chart-line"></i>Métricas
+                            </a>
+                        </ng-container>
+
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" routerLink="/profile-user">
+                            <i class="fas fa-user-edit"></i>Editar Perfil
+                        </a>
+                        <a class="dropdown-item" routerLink="/change-password">
+                            <i class="fas fa-key"></i>Cambiar Contraseña
+                        </a>
+                        <a class="dropdown-item" routerLink="/reservations-history">
+                            <i class="fas fa-calendar-check"></i>Mis Reservas
+                        </a>
+
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item logout" href="#" (click)="logout($event)">
+                            <i class="fas fa-sign-out-alt"></i>Cerrar Sesión
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Imagen de perfil del usuario logueado -->
+                <a routerLink="/profile-user" class="profile-link">
+                    <img [src]="profilePicUrl"
+                         alt="Perfil"
+                         class="profile-img"
+                         (error)="handleImageError($event)">
+                </a>
+            </ng-container>
+
+            <ng-container *ngIf="!isLoggedIn">
+                <a class="nav-link host-link" routerLink="/login">Conviértete en anfitrión</a>
+                <a class="nav-link host-link" routerLink="/login">Iniciar Sesión</a>
+                <a class="nav-link host-link" routerLink="/register">Regístrate</a>
+            </ng-container>
         </div>
     </div>
 </nav>
@@ -38,13 +100,16 @@
             <div class="row">
                 <!-- Columna izquierda - Información -->
                 <div class="col-md-7">
-                    <!-- Card del anfitrión -->
+                    <!-- Card del anfitrión CON FOTO CORREGIDA -->
                     <div class="card p-3 mb-4">
                         <div class="d-flex align-items-center">
-                            <img [src]="bookingData.accommodation.host.photoProfile || 'assets/imagenes/perfil.png'" class="rounded-circle host-img" alt="Anfitrión">
+                            <img [src]="hostPhotoUrl || 'assets/imagenes/perfil.png'"
+                                 class="rounded-circle host-img"
+                                 alt="Anfitrión"
+                                 (error)="handleImageError($event)">
                             <div class="ms-3">
                                 <p class="mb-0 texto-legible host-label">Anfitrión</p>
-                                <h5 class="mb-0">{{ bookingData.accommodation.host.name }} {{ bookingData.accommodation.host.lastName }}</h5>
+                                <h5 class="mb-0">{{ getHostName() }}</h5>
                             </div>
                         </div>
                     </div>
@@ -89,7 +154,10 @@
                     <div class="card p-4">
                         <!-- Información del alojamiento -->
                         <div class="d-flex align-items-center mb-3 summary-card">
-                            <img [src]="bookingData.accommodation.mainImage || 'assets/imagenes/hostal1.jpg.webp'" alt="Alojamiento" class="accommodation-img">
+                            <img [src]="bookingData.accommodation.mainImage || 'assets/imagenes/hostal1.jpg.webp'"
+                                 alt="Alojamiento"
+                                 class="accommodation-img"
+                                 (error)="handleImageError($event)">
                             <div class="ms-3">
                                 <h5 class="mb-1">{{ bookingData.accommodation.title }}</h5>
                                 <p class="mb-0 texto-legible location-text">{{ bookingData.accommodation.city }}</p>
