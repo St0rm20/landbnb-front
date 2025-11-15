@@ -4,8 +4,7 @@ export const environment = {
     apiUrl: 'http://localhost:8080/api'
 };
 
-// src/environments/environment.prod.ts
 export const environmentProd = {
     production: true,
-    apiUrl: 'https://tu-dominio.com/api' // Cambia esto en producción
+    apiUrl: 'https://land-bnb-production.up.railway.app/'
 };
