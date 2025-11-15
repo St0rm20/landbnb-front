@@ -32,6 +32,8 @@ export class ChangePasswordComponent implements OnInit {
     isLoggedIn: boolean = false;
     userRole: string = '';
     profilePicUrl: string = 'assets/imagenes/perfil.png';
+    isUser: boolean = false;
+    isHost: boolean = false;
 
     constructor(
         private fb: FormBuilder,
@@ -53,6 +55,10 @@ export class ChangePasswordComponent implements OnInit {
         this.isLoggedIn = this.tokenService.isLogged();
         this.userRole = this.tokenService.getRole();
         this.userEmail = this.tokenService.getEmail();
+
+        // Determinar si es usuario o host
+        this.isUser = this.userRole === 'USER';
+        this.isHost = this.userRole === 'HOST';
 
         if (!this.isLoggedIn) {
             this.router.navigate(['/login']);
